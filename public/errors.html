@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="js/utils.js"></script>
+    <script src="js/jquery-3.5.1.slim.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
+
+
+    <script async="false" src="js/ajax.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <title>Log browser</title>
+</head>
+
+<body>
+    <h1 class="bd-content-title">6.1 log browser</h1>
+    <div id="loader" class="loader loader-default"></div>
+    <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+    <div class="container-fluid">
+        <div class="row" style="background-color: #eee;padding-top: 20px;">
+            <div class="col-sm">
+                <form>
+                    <div class="form-group row">
+                        <label for="beg_id" class="col-sm-1 col-form-label col-form-label-sm">Start ID</label>
+                        <div class="col-sm-1">
+                            <input type="number" class="form-control form-control-sm" id="beg_id" placeholder="">
+                        </div>
+                        <label for="end_id" class="col-sm-1 col-form-label col-form-label-sm">Last ID</label>
+                        <div class="col-sm-1">
+                            <input type="number" class="form-control form-control-sm" id="end_id" placeholder="">
+                        </div>
+                        <div class="col-sm-8"><button id="btn_request" class="btn btn-primary"
+                                type="button">Запросить</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm">
+                <div id="chart_box" style="height: 500px;"></div>
+            </div>
+            <div class="col-sm">
+                Error table will be shown here
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+
+        const View = function () {
+
+            this.wait = function (doWait) {
+                if (doWait) {
+                    document.getElementById('loader').classList.add('is-active');
+                }
+                else {
+                    document.getElementById('loader').classList.remove('is-active');
+                }
+            }
+
+            this.showError = function (msg) {
+                document.getElementById('error_box').innerText = msg;
+                document.getElementById('error_box').style.display = 'block';
+            }
+
+            this.getInputVal = function (inpId) {
+                const val = parseInt(document.getElementById(inpId).value);
+                return val ? val : null;
+            }
+
+            this.setInputVal = function (inpId, val) {
+                if (!val) {
+                    val = '';
+                }
+                document.getElementById(inpId).value = val;
+            }
+
+            this.getTopCondition = function () {
+                const res = {};
+                res.beg_id = this.getInputVal('beg_id');
+                res.end_id = this.getInputVal('end_id');
+                return res;
+            }
+
+            this.showCondition = function (cond) {
+                this.setInputVal('beg_id', cond.beg_id);
+                this.getInputVal('end_id', cond.end_id);
+            }
+
+            this.constructor = function () {
+            }
+
+            this.constructor();
+        }
+
+        const Ctrl = function () {
+            const me = this;
+            const view = new View();
+            let chart = null;
+            let chart_data = null;
+
+            this.saveCondition = function (cond) {
+                setCookie('condition', JSON.stringify(cond));
+            }
+
+            this.loadCondition = function () {
+                const txt = getCookie('condition');
+                if (txt === undefined) {
+                    return {
+                        beg_id: null,
+                        end_id: null
+                    }
+                }
+                return JSON.parse(txt);
+            }
+
+            this.getErrorRows = async function(errText){
+
+            }
+
+            this.getStat = async function () {
+                const cond = view.getTopCondition();
+                this.saveCondition(cond);
+                view.wait(true);
+                try {
+                    const options = {
+                        method: "POST",
+                        body: JSON.stringify(cond),
+                        headers: { "content-type": "application/json" }
+                    };
+                    const errors = await me.ajax.query("/api/v1/errors", options);
+                    errors.unshift(['Тип', 'Кол-во']);
+
+
+                    chart_data = google.visualization.arrayToDataTable(errors);
+                    const draw_options = {
+                        title: 'Типы ошибок',
+                        is3D: true,
+                        pieSliceText: 'value',
+                    };
+                    chart.draw(chart_data, draw_options);
+                }
+                catch (ex) {
+                    view.showError(ex.message);
+                }
+                finally {
+                    view.wait(false);
+                }
+            }
+
+            this.onSubmit = function () {
+                // const cond = view.getTopCondition();
+                this.getStat();
+            }
+
+            this.onChartSelect = function () {
+                const selectedItem = chart.getSelection()[0];
+                if (selectedItem) {
+                    var value = chart_data.getValue(selectedItem.row, 0);
+                    console.log('The user selected ' + value);
+                }
+            }
+
+            this.init = function () {
+                me.ajax = new AJAX();
+
+                chart = new google.visualization.PieChart(document.getElementById('chart_box'));
+                google.visualization.events.addListener(chart, 'select', me.onChartSelect);
+
+                const cond = me.loadCondition();
+                view.showCondition(cond);
+                me.getStat();
+            }
+
+            this.constructor = function () {
+                this.init();
+            }
+
+            this.constructor();
+        }
+
+        window.addEventListener('load', function () {
+            console.log('READY');
+        });
+
+        document.addEventListener('DOMDocumentLoaded', () => {
+            document.getElementById('chart_box').addEventListener('click', () => {
+                document.getElementById('chart_box').style.display = 'none';
+            });
+        });
+
+
+        google.charts.load('current', { 'packages': ['corechart'] });
+        google.charts.setOnLoadCallback(() => {
+            const ctrl = new Ctrl();
+            document.getElementById('btn_request').addEventListener('click', () => {
+                console.log('btn request clicked');
+                console.log(ctrl.onSubmit());
+            });
+        });
+
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,33 @@
+{
+    "EVENTS": {
+        "ON_NEW_MESSAGE": "ON_NEW_MSG",
+        "ON_RECEIVE_ERR": "ON_RCV_ERR",
+        "ON_RECEIVER_IDLE": "ON_RCV_IDLE",
+        "ON_DB_CALL": "ON_DB_CALL",
+        "RCV_TIME": "RCV_TIME"
+    },
+    "MSG_TYPES": {
+        "TYPE_MDM": "http://trinidata.ru/sigma/ОбъектЭнергоснабжения",
+        "TYPE_VOL": "http://trinidata.ru/sigma/ПередачаОбъемов",
+        "TYPE_IND": "http://trinidata.ru/sigma/Показания"
+    },
+    "LOSSES": {
+        "KEY_PU": "http://trinidata.ru/sigma/ВидыПотребленияПУ",
+        "KEY_POTERI": "http://trinidata.ru/sigma/ВидыПотребленияПотери",
+        "KEY_RAS": "http://trinidata.ru/sigma/ВидыПотребленияРасчетный",
+        "KEY_DOP": "http://trinidata.ru/sigma/ВидыПотребленияДополнительный",
+        "KEY_OB": "http://trinidata.ru/sigma/ВидыПотребленияОбщий",
+        "KEY_INT": "http://trinidata.ru/sigma/ВидыПотребленияИнтервальный",
+        "KEY_Z": "http://trinidata.ru/sigma/ВидыПотребленияНулевойРасход",
+        "KEY_DG": "http://trinidata.ru/sigma/ВидыПотребленияПоДоговору",
+        "KEY_SR": "http://trinidata.ru/sigma/ВидыПотребленияПогашеноСредним",
+        "KEY_OTHER": "http://trinidata.ru/sigma/ВидыПотребленияПРОЧИЙ"
+    },
+    "ARRAY_ROUTES": [
+        "/ОбеспечиваетсяЭэЧерезТочкиПоставки",
+        "/ОбеспечиваетсяЭэЧерезТочкиПоставки/ИспользуетсяРасчетнаяСхема",
+        "/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная",
+        "/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу/ПуНаИк",
+        "/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу/ПуНаИк/РегистрНаПу"
+    ]
+}

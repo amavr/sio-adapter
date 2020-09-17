@@ -1,0 +1,79 @@
+'use strict';
+
+const Adapter = require('../../helpers/adapter');
+const CntDevice = require('./source_cnt_device');
+
+module.exports = class SourceCntPoint {
+
+    constructor(node) {
+        this.pnt_kod_point = node['@id'];
+        this.pnt_num = Adapter.getVal(node, 'НомерТочкиУчета');
+        this.pnt_name = Adapter.getVal(node, 'НаименованиеТу');
+        this.pnt_dat_s = Adapter.getVal(node, 'ДатаНачалаДействияТУ');
+        this.pnt_dat_po = Adapter.getVal(node, 'ДатаОкончанияДействияТУ');
+        this.nodes = CntDevice.parse(node['ИзмерительныйКомплексНаТу']['ПуНаИк']);
+    }
+
+    static getColNames() {
+        return [
+            ...SourceCntPoint.getSelfColNames(),
+            ...CntDevice.getColNames()
+        ]
+    }
+
+    static getEmpty(owner_data){
+        const rep_data = [...owner_data, ...[null, null, null, null, null]];
+        return CntDevice.getEmpty(rep_data);
+    }
+
+    getColValues(owner_data) {
+        const my_data = this.getSelfColValues();
+        const rep_data = [...owner_data, ...my_data];
+
+        const rows = [];
+        /// Если потомков нет, то нужно вернуть только одну строку с пустыми значениями потомка
+        if (this.nodes.length === 0) {
+            rows.push(CntDevice.getEmpty(rep_data));
+        }
+        else {
+            /// цикл по вложенным объектам
+            for (const node of this.nodes) {
+                /// каждый потомок возращает массив строк
+                for(const row of node.getColValues(rep_data)){
+                    rows.push(row);
+                }
+            }
+        }
+        return rows;
+    }
+
+    static getSelfColNames() {
+        return [
+            'pnt_kod_point',
+            'pnt_num',
+            'pnt_name',
+            'pnt_dat_s',
+            'pnt_dat_po'
+        ];
+    }
+
+    getSelfColValues() {
+        return [
+            this.pnt_kod_point,
+            this.pnt_num,
+            this.pnt_name,
+            this.pnt_dat_s,
+            this.pnt_dat_po
+        ];
+    }
+
+    /// разбор массива точек поставки
+    static parse(nodes) {
+        try {
+            return nodes.map(node => new SourceCntPoint(node));
+        }
+        catch (ex) {
+            return [];
+        }
+    }
+}
