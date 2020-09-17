@@ -56,14 +56,21 @@ router.post('/v1/errors', async(req, res) => {
     res.send(data);
 });
 
-router.post('/v1/error', async(req, res) => {
+router.post('/v1/transact', async(req, res) => {
     const cond = req.body;
-    const sql = holder.get('stat_log_errors').replace('##beg_id##', cond.beg_id).replace('##end_id##', cond.end_id);
+    const sql = holder.get('tran_rows')
+        .replace('##beg_id##', cond.beg_id)
+        .replace('##end_id##', cond.end_id)
+        .replace('##msg##', cond.msg);
+
     const result = await db_helper.execSql(sql);
-    const data = result.data.map((val, i) => {
-        return [val.MSG, val.NUM];
-    });
-    res.send(data);
+    const data = result.data;
+    if(result.success){
+        res.send(data);
+    }
+    else{
+        res.status(500).send(result.error);
+    }
 });
 
 module.exports = router;

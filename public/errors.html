@@ -41,16 +41,46 @@
                 </form>
             </div>
         </div>
-        <div class="row">
-            <div class="col-sm">
+        <div class="row justify-content-md-center">
+            <div class="col-sm-5">
                 <div id="chart_box" style="height: 500px;"></div>
             </div>
-            <div class="col-sm">
-                Error table will be shown here
+            <div class="col-sm-7">
+                <div id="block_rows" style="font-size: 8pt;">
+                </div>
             </div>
         </div>
     </div>
 
+    <div id="dlg" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">SQL</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body"><pre id="dlgText"></pre></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>    
+
+    <div id="templates">
+        <div class="block_row">
+            <div class="row ##lvl##" style="margin: 8px 0;">
+                <!-- <div class="col-sm-1">##dt##</div> -->
+                <div class="col-sm-1">##tag##</div>
+                <div class="col-sm-11">##a_beg####msg####a_end##</div>
+                <!-- <div class="col-sm-2">##key##</div>
+                <div class="col-sm-1">##tran_id##</div>
+                <div class="col-sm-1">##id##</div> -->
+            </div>
+        </div>
+    </div>
 
 
     <script>
@@ -95,6 +125,44 @@
                 this.getInputVal('end_id', cond.end_id);
             }
 
+            this.showModal = function(sql){
+                $('#dlgText').text(sql);
+                $('#dlg').modal('show');
+            }
+
+
+            this.showBlockRows = function (rows, onClick) {
+                const html = document.querySelector('#templates div.block_row').innerHTML;
+                const box = document.getElementById('block_rows');
+                const list_beg = box.querySelectorAll('a.to_fmt');
+                for(const a of list_beg){
+                    a.removeEventListener('click', onClick)
+                }
+
+                const divs = [];
+                for (const row of rows) {
+                    const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.length > 80;
+                    const hrow = html
+                        .replace('##lvl##', row.LVL)
+                        .replace('##tag##', row.TAG)
+                        .replace('##dt##', row.DT.replace('T', ' ').replace('Z', ' '))
+                        .replace('##id##', row.ID)
+                        .replace('##key##', row.KEY)
+                        .replace('##msg##', row.MSG)
+                        .replace('##tran_id##', row.TRAN_ID)
+                        .replace('##a_beg##', clicked ? '<a class="to_fmt" href="#">' : '')
+                        .replace('##a_end##', clicked ? '</a>' : '');
+                    divs.push(hrow);
+                }
+                const tab = divs.join('\r\n');
+                box.innerHTML = tab;
+
+                const list_end = box.querySelectorAll('a.to_fmt');
+                for(const a of list_end){
+                    a.addEventListener('click', onClick)
+                }
+            }
+
             this.constructor = function () {
             }
 
@@ -122,12 +190,27 @@
                 return JSON.parse(txt);
             }
 
-            this.getErrorRows = async function(errText){
-
+            this.getBlockByError = async function (filter) {
+                view.wait(true);
+                try {
+                    const options = {
+                        method: "POST",
+                        body: JSON.stringify(filter),
+                        headers: { "content-type": "application/json" }
+                    };
+                    const rows = await me.ajax.query("/api/v1/transact", options);
+                    view.showBlockRows(rows, me.onRowClick);
+                }
+                catch (ex) {
+                    view.showError(ex.message);
+                }
+                finally{
+                    view.wait(false);
+                }
             }
 
-            this.getStat = async function () {
-                const cond = view.getTopCondition();
+            this.getStat = async function (filter) {
+                const cond = filter;
                 this.saveCondition(cond);
                 view.wait(true);
                 try {
@@ -147,6 +230,9 @@
                         pieSliceText: 'value',
                     };
                     chart.draw(chart_data, draw_options);
+
+                    view.showBlockRows([], me.onRowClick);
+
                 }
                 catch (ex) {
                     view.showError(ex.message);
@@ -156,16 +242,41 @@
                 }
             }
 
+            this.onRowClick = async function(e){
+                e.preventDefault();
+                const data = {};
+                data.sql = this.innerText;
+                view.wait(true);
+                try {
+                    const answer =await me.ajax.query("/api/v1/sql", {
+                        method: "POST",
+                        body: JSON.stringify(data),
+                        headers: { "content-type": "application/json" }
+                    });
+
+                    view.showModal(answer.sql);
+                }
+                catch (ex) {
+                    console.log(ex);
+                }
+                finally{
+                    view.wait(false);
+                }
+                return false;
+            }
+
             this.onSubmit = function () {
-                // const cond = view.getTopCondition();
-                this.getStat();
+                const cond = view.getTopCondition();
+                this.getStat(cond);
             }
 
             this.onChartSelect = function () {
                 const selectedItem = chart.getSelection()[0];
                 if (selectedItem) {
                     var value = chart_data.getValue(selectedItem.row, 0);
-                    console.log('The user selected ' + value);
+                    const cond = view.getTopCondition();
+                    cond.msg = value;
+                    me.getBlockByError(cond);
                 }
             }
 
@@ -177,7 +288,7 @@
 
                 const cond = me.loadCondition();
                 view.showCondition(cond);
-                me.getStat();
+                me.getStat(cond);
             }
 
             this.constructor = function () {
