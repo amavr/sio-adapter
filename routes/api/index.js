@@ -41,7 +41,7 @@ router.get('/v1/msg', async (req, res) => {
 
 router.post('/v1/sql', async(req, res) => {
     const sql = req.body.sql;
-    const fmt = sqlFormatter.format(sql, {language: "pl/sql", indent: '\t'});
+    const fmt = sqlFormatter.format(sql, {language: "pl/sql", indent: '\t'}).replace(/=\s+>/g, '=>');
     // res.setHeader('Content-Type', 'text/plain');
     res.send({sql: fmt});
 });

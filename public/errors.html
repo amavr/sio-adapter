@@ -41,36 +41,54 @@
                 </form>
             </div>
         </div>
-        <div class="row justify-content-md-center">
-            <div class="col-sm-5">
-                <div id="chart_box" style="height: 500px;"></div>
+        <div class="xrow justify-content-md-center">
+            <div class="xcol-sm">
+                <div id="chart_box" style="height: 300px;"></div>
             </div>
-            <div class="col-sm-7">
-                <div id="block_rows" style="font-size: 8pt;">
-                </div>
+            <div id="col_tab" class="xcol-sm">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Time</th>
+                            <th scope="col">Tag</th>
+                            <th scope="col">Message</th>
+                            <th scope="col">Key</th>
+                        </tr>
+                    </thead>
+                    <tbody class="tab_rows" style="font-size: 10pt;">
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <div id="dlg" class="modal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">SQL</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">SQL</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre id="dlgText"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+                </div>
             </div>
-            <div class="modal-body"><pre id="dlgText"></pre></div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
-            </div>
-          </div>
         </div>
-      </div>    
+    </div>
 
     <div id="templates">
         <div class="block_row">
+            <tr class="##lvl##">
+                <td>##tag##</td>
+                <td>##a_beg####msg####a_end##</td>
+            </tr>
+        </div>
+        <div class="block_row_old">
             <div class="row ##lvl##" style="margin: 8px 0;">
                 <!-- <div class="col-sm-1">##dt##</div> -->
                 <div class="col-sm-1">##tag##</div>
@@ -125,17 +143,18 @@
                 this.getInputVal('end_id', cond.end_id);
             }
 
-            this.showModal = function(sql){
+            this.showModal = function (sql) {
                 $('#dlgText').text(sql);
                 $('#dlg').modal('show');
             }
 
 
             this.showBlockRows = function (rows, onClick) {
-                const html = document.querySelector('#templates div.block_row').innerHTML;
-                const box = document.getElementById('block_rows');
+                // const html = $('#templates .block_row').html();
+                const html = '<tr class="##lvl##"><td>##dt##</td><td>##tag##</td><td>##a_beg####msg####a_end##</td><td>##key##</td></tr>';
+                const box = document.querySelector('#col_tab .tab_rows');
                 const list_beg = box.querySelectorAll('a.to_fmt');
-                for(const a of list_beg){
+                for (const a of list_beg) {
                     a.removeEventListener('click', onClick)
                 }
 
@@ -154,11 +173,10 @@
                         .replace('##a_end##', clicked ? '</a>' : '');
                     divs.push(hrow);
                 }
-                const tab = divs.join('\r\n');
-                box.innerHTML = tab;
+                box.innerHTML = divs.join('');
 
                 const list_end = box.querySelectorAll('a.to_fmt');
-                for(const a of list_end){
+                for (const a of list_end) {
                     a.addEventListener('click', onClick)
                 }
             }
@@ -204,7 +222,7 @@
                 catch (ex) {
                     view.showError(ex.message);
                 }
-                finally{
+                finally {
                     view.wait(false);
                 }
             }
@@ -242,13 +260,13 @@
                 }
             }
 
-            this.onRowClick = async function(e){
+            this.onRowClick = async function (e) {
                 e.preventDefault();
                 const data = {};
                 data.sql = this.innerText;
                 view.wait(true);
                 try {
-                    const answer =await me.ajax.query("/api/v1/sql", {
+                    const answer = await me.ajax.query("/api/v1/sql", {
                         method: "POST",
                         body: JSON.stringify(data),
                         headers: { "content-type": "application/json" }
@@ -259,7 +277,7 @@
                 catch (ex) {
                     console.log(ex);
                 }
-                finally{
+                finally {
                     view.wait(false);
                 }
                 return false;

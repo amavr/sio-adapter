@@ -11,5 +11,6 @@ a {
 
 #block_rows div.row{ margin: 10px 0;}
 #block_rows div.ERR{ color: red;}
+.tab_rows tr.ERR{ background-color: #ffdddd;}
 
 #dlgText {font-size: 10pt; font-family: monospace;}
