@@ -18,7 +18,7 @@ class Statistics {
 
         this.data = {
             dates: {},
-            times: []
+            starts: []
         };
 
         this.init();
