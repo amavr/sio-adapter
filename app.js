@@ -10,6 +10,19 @@ const cfg = require('./config');
 
 const log4js = require('log4js');
 
+const oracledb = require('oracledb');
+const ofs = 10;
+console.log("".padEnd(32, '='));
+console.log("Platform:".padStart(ofs), process.platform);
+console.log("Version:".padStart(ofs), process.version);
+console.log("Arch:".padStart(ofs), process.arch);
+console.log("OracleDB:".padStart(ofs), oracledb.versionString);
+console.log("Client:".padStart(ofs), oracledb.oracleClientVersionString);
+console.log("".padEnd(32, '='));
+
+
+
+
 const indexRouter = require('./routes');
 const Worker = require('./masterdata');
 const worker = new Worker(cfg);

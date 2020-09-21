@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="css/loader-default.css">
     <link rel="stylesheet" href="css/style.css">
 
+    <script src="js/handlebars.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/jquery-3.5.1.slim.min.js"></script>
     <script src="js/popper.min.js"></script>
@@ -41,11 +42,68 @@
                 </form>
             </div>
         </div>
-        <div class="xrow justify-content-md-center">
-            <div class="xcol-sm">
-                <div id="chart_box" style="height: 300px;"></div>
+        <div>
+            <div class="row">
+                <div class="col-sm" style="height: 400px; overflow-y: scroll;">
+                    <div id="accordeon">
+                        <!--
+                        <div class="card">
+                            <div class="card-header" id="headingOne">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne"
+                                        aria-expanded="true" aria-controls="collapseOne">
+                                        2020-09-17 ИЖС сопоставленные
+                                    </button>
+                                </h5>
+                            </div>
+                            <div id="collapseOne" class="collapse show" aria-labelledby="headingOne"
+                                data-parent="#accordion">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md fld_code">Счетчик №1</div>
+                                        <div class="col-md fld_val">12930</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md fld_code">Счетчик №2</div>
+                                        <div class="col-md fld_val">12</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" id="headingTwo">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseTwo"
+                                        aria-expanded="true" aria-controls="collapseTwo">
+                                        2020-09-17 ИЖС сопоставленные
+                                    </button>
+                                </h5>
+                            </div>
+                            <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo"
+                                data-parent="#accordion">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md fld_code">Счетчик №1</div>
+                                        <div class="col-md fld_val">12930</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md fld_code">Счетчик №2</div>
+                                        <div class="col-md fld_val">12</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        -->
+                    </div>
+
+                </div>
+                <div class="col-sm">
+                    <div id="chart_box" style="height: 400px;"></div>
+                </div>
             </div>
             <div id="col_tab" class="xcol-sm">
+                <h3>Transaction ID: <span id="tran_id">-</span></h3>
                 <table class="table">
                     <thead>
                         <tr>
@@ -81,7 +139,59 @@
         </div>
     </div>
 
+
+    <script id="tmpl-card" type="text/x-handlebars-template">
+        <div class="card">
+            <div class="card-header" id="h-{{id}}">
+                <h5 class="mb-0">
+                    <button class="btn btn-link" data-toggle="collapse" data-target="#b-{{id}}" aria-expanded="true"
+                        aria-controls="b-{{id}}">{{h_text}}</button>
+                </h5>
+            </div>
+            <div id="b-{{id}}" class="collapse show" aria-labelledby="h-{{id}}" data-parent="#accordion">
+                <div class="card-body">{{b_text}}</div>
+            </div>
+        </div>
+    </script>
+
+
+    <template id="card">
+        <div class="card">
+            <div class="card-header" id="headingTwo">
+                <h5 class="mb-0">
+                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true"
+                        aria-controls="collapseTwo"></button>
+                </h5>
+            </div>
+            <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo" data-parent="#accordion">
+                <div class="card-body">
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="card_body">
+        <div class="row">
+            <div class="col-md fld_code">Счетчик №1</div>
+            <div class="col-md fld_val">12930</div>
+        </div>
+    </template>
+
     <div id="templates">
+
+        <div class="card">
+            <div class="card-header" id="headingTwo">
+                <h5 class="mb-0">
+                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true"
+                        aria-controls="collapseTwo"></button>
+                </h5>
+            </div>
+            <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo" data-parent="#accordion">
+                <div class="card-body">
+                </div>
+            </div>
+        </div>
+
         <div class="block_row">
             <tr class="##lvl##">
                 <td>##tag##</td>
@@ -148,6 +258,27 @@
                 $('#dlg').modal('show');
             }
 
+            this.showAccordeon = function(labels){
+                const box = document.getElementById('accordeon');
+                const t_card = document.querySelector('#templates .card');
+                const t_head = t_card.querySelector('.card-header');
+                const t_btn = t_card.querySelector('button');
+                const t_body = t_card.querySelector('.collapse');
+                for(const lab of labels){
+                    const hid = 'h-' + lab.ID;
+                    const bid = 'b-' + lab.ID;
+                    t_head.setAttribute('id', hid);
+
+                    t_btn.textContent = lab.DT.substr(0, 10) +' '+ lab.DT.substr(11, 5) + '  ['+ lab.TYPE + '] '+ lab.NAME;
+                    t_btn.setAttribute('data-target', '#' + bid);
+                    t_btn.setAttribute('aria-controls', bid);
+                    t_body.setAttribute('id', bid);
+                    t_body.setAttribute('aria-labelledby', hid);
+
+                    const clone = document.importNode(t_card, true);
+                    box.appendChild(clone);
+                }
+            }
 
             this.showBlockRows = function (rows, onClick) {
                 // const html = $('#templates .block_row').html();
@@ -159,6 +290,9 @@
                 }
 
                 const divs = [];
+                if (rows.length > 0) {
+                    $('#tran_id').text(rows[0].TRAN_ID);
+                }
                 for (const row of rows) {
                     const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.length > 80;
                     const hrow = html
@@ -232,6 +366,12 @@
                 this.saveCondition(cond);
                 view.wait(true);
                 try {
+                    const labels = await me.ajax.query("/api/v1/times/labels", { method: "GET"});
+                    console.log(labels);
+                    view.showAccordeon(labels);
+
+
+
                     const options = {
                         method: "POST",
                         body: JSON.stringify(cond),
@@ -246,6 +386,7 @@
                         title: 'Типы ошибок',
                         is3D: true,
                         pieSliceText: 'value',
+                        width: 800
                     };
                     chart.draw(chart_data, draw_options);
 
@@ -321,6 +462,7 @@
         });
 
         document.addEventListener('DOMDocumentLoaded', () => {
+            
             document.getElementById('chart_box').addEventListener('click', () => {
                 document.getElementById('chart_box').style.display = 'none';
             });

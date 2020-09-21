@@ -16,7 +16,7 @@ class DBHelper {
 
     async init() {
         this.pool = await oracledb.createPool(this.options);
-        console.log('DBHelper ready')
+        log.info('READY');
     }
 
     async getConnection() {
