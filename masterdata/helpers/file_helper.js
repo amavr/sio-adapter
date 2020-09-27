@@ -17,7 +17,7 @@ const TYPE_NAMES = {
 
 class FileHelper {
 
-    static FileExists(fpath){
+    static FileExistsSync(fpath){
         return fs.existsSync(fpath);
     }
 
@@ -27,15 +27,6 @@ class FileHelper {
 
     static getFiles(dirPath, options) {
         return fsp.readdir(dirPath, options);
-        // return new Promise((resolve, reject) => {
-        //     fsp.readdir(dirPath, options)
-        //         .then(files => {
-        //             resolve(files);
-        //         })
-        //         .catch(err => {
-        //             reject(err);
-        //         });
-        // });
     }
 
     static readAsObject(filePath) {
@@ -88,12 +79,12 @@ class FileHelper {
 
     }
 
-    static async saveObjAsync(filePath, obj) {
+    static async saveObj(filePath, obj) {
         const json = JSON.stringify(obj, null, 4);
-        return await FileHelper.saveAsync(filePath, json);
+        return await FileHelper.save(filePath, json);
     }
 
-    static async saveAsync(filePath, val) {
+    static async save(filePath, val) {
         FileHelper.checkDir(filePath);
         return await fsp.writeFile(filePath, val);
     }
@@ -108,7 +99,7 @@ class FileHelper {
         fs.writeFileSync(filePath, val);
     }
 
-    static moveFile(sour, dest, onError) {
+    static moveFileSync(sour, dest, onError) {
         FileHelper.checkDir(dest);
         fs.rename(sour, dest, err => {
             if (err) {

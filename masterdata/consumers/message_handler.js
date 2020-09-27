@@ -3,49 +3,55 @@
 const path = require('path');
 const log = require('log4js').getLogger('handler.msg');
 
-const CONST = require('./resources/const.json');
-const db_helper = require('./helpers/db_helper');
-const Utils = require('./helpers/utils');
+const CONST = require('../resources/const.json');
+const DBHelper = require('../helpers/db_helper');
+const Utils = require('../helpers/utils');
 
-const SourceDoc = require('./models/mdm_src/source_doc');
-const IndicatDoc = require('./models/num/indicat');
-const VolumeDoc = require('./models/volumes/vol_doc');
+const SourceDoc = require('../models/mdm_src/source_doc');
+const IndicatDoc = require('../models/num/indicat');
+const VolumeDoc = require('../models/volumes/vol_doc');
 
-const cfg = require('../config');
-const FileHelper = require('./helpers/file_helper');
+const Consumer = require('../framework/consumer');
+const FileHelper = require('../helpers/file_helper');
 
-module.exports = class MessageHandler {
+module.exports = class MessageHandler extends Consumer {
 
     constructor(cfg) {
-        this.cfg = cfg;
+        super(cfg);
+
+        this.msg_dir = path.join(cfg.work_dir, cfg.msg_dir);
+        this.err_dir = path.join(cfg.work_dir, cfg.err_dir);
+        this.log_dir = path.join(cfg.work_dir, cfg.log_dir);
+        this.dbg_dir = path.join(cfg.work_dir, cfg.dbg_dir);
+        this.save_debug = cfg.save_debug;
+
+        this.db_helper = new DBHelper(cfg.db);
     }
 
-    async init(){
-        await db_helper.init();
-        await db_helper.execSql('select 1 from dual');
+    async init() {
+        super.init();
+        await this.db_helper.init();
+        await this.db_helper.execSql('select 1 from dual');
         log.info('READY')
-    }
-
-    async onEvent(eventName, sender, data){
-        console.log(`HANDLER\t${eventName}`);
-        await this.executeEvent(data);
     }
 
     async executeEvent(pack) {
         // log.debug('MessageHandler.onMessage');
+        if(pack.data === null) return;
+
         try {
             if (pack.code === 200) {
                 pack.data = JSON.parse(pack.data);
                 const ies_type = pack.data['@type'];
 
                 if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
-                    log.info(' 6.1 arrived');
+                    log.info(`${pack.id} [6.1]`);
                     await this.onMessage61(pack);
                 } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
-                    log.info('13.1 arrived');
+                    log.info(`${pack.id} [13.1]`);
                     await this.onMessage131(pack);
                 } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
-                    log.info('16.1 arrived');
+                    log.info(`${pack.id} [16.1]`);
                     await this.onMessage161(pack);
                 } else {
                     pack.error = 'UNKNOWN-TYPE arrived';
@@ -80,7 +86,9 @@ module.exports = class MessageHandler {
                 + columns.map((e, i) => `:${i + 1}`).join(', ')
                 + ')';
 
-            const res = await db_helper.insertMany(sql, rows_data);
+            const res = await this.db_helper.insertMany(sql, rows_data);
+
+            return;
 
             if (res.batchErrors) {
                 log.warn(res.batchErrors);
@@ -88,38 +96,34 @@ module.exports = class MessageHandler {
 
             const time2 = new Date().getTime();
             /// ПОИСК ПОЛНЫХ ЦЕПОЧЕК --------------------------------------------
-            const ans_chains = await db_helper.findChains(doc, fname);
-
-            return;
-
+            const ans_chains = await this.db_helper.findChains(doc, fname);
 
             const time3 = new Date().getTime();
             /// ПОИСК ИЛИ СОЗДАНИЕ ШКАЛ --------------------------------------------
-            const ans_registers = await db_helper.findRegisters(doc);
+            const ans_registers = await this.db_helper.findRegisters(doc);
 
             const time4 = new Date().getTime();
             /// ЗАПУСК ОСНОВНОЙ ОБРАБОТКИ  --------------------------------------------
-            const ans_handle = await db_helper.handleFile(doc, fname);
+            const ans_handle = await this.db_helper.handleAbon(doc, fname);
 
             const end_time = new Date().getTime();
             console.log(`${file.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
         }
         catch (ex) {
             log.error(ex);
-            const fpath = path.join(this.cfg.err_dir, fname + '.txt');
-            FileHelper.saveObjAsync(fpath, msg);
+            const fpath = path.join(this.err_dir, fname + '.txt');
+            FileHelper.saveObj(fpath, msg);
         }
     }
 
     async onMessage131(pack) {
-        log.debug('receive 13.1');
         const msg = pack.data;
         const doc = IndicatDoc.parse(msg);
-        const answer = await db_helper.saveIndicat(doc);
-        if (cfg.options.saveResults) {
+        const answer = await this.db_helper.saveIndicat(doc);
+        if (this.save_debug) {
             const codes = '.' + Object.keys(answer).join('.');
-            const fpath = path.join(cfg.dbg_dir, pack.id + codes + '.txt');
-            await FileHelper.saveObjAsync(fpath, answer);
+            const fpath = path.join(this.dbg_dir, pack.id + codes + '.txt');
+            await FileHelper.saveObj(fpath, answer);
         }
     }
 
@@ -141,7 +145,7 @@ module.exports = class MessageHandler {
             };
 
             /// open for changes
-            const ans_open = await db_helper.accept_priem(sup_point.kod_attpoint, true);
+            const ans_open = await this.db_helper.accept_priem(sup_point.kod_attpoint, true);
             sup_info.open = ans_open;
 
             // ans_open.code = 200;
@@ -161,7 +165,7 @@ module.exports = class MessageHandler {
                     /// update volumes
                     for (const key in sup_point.values) {
                         const val = sup_point.values[key];
-                        const ans = await db_helper.set_priem_values(
+                        const ans = await this.db_helper.set_priem_values(
                             val.prev_reg_key,
                             val.last_reg_key,
                             ans_open.ym,
@@ -196,12 +200,12 @@ module.exports = class MessageHandler {
                 }
             }
             /// close for changes
-            const ans_close = await db_helper.accept_priem(sup_point.kod_attpoint, false);
+            const ans_close = await this.db_helper.accept_priem(sup_point.kod_attpoint, false);
 
             result.att_points.push(sup_info);
 
-            const fpath = path.join(cfg.dbg_dir, pack.id);
-            await FileHelper.saveObjAsync(fpath, result);
+            const fpath = path.join(this.dbg_dir, pack.id);
+            await FileHelper.saveObj(fpath, result);
         }
 
     }
@@ -210,8 +214,8 @@ module.exports = class MessageHandler {
         if (pack) {
             log.error(pack.error);
             const fname = pack.id ? pack.id : FileHelper.getTimeFilename('.log');
-            const fpath = path.join(this.cfg.err_dir, fname);
-            FileHelper.saveObjAsync(fpath, pack);
+            const fpath = path.join(this.err_dir, fname);
+            FileHelper.saveObj(fpath, pack);
         }
     }
 

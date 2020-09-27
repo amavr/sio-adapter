@@ -1,0 +1,109 @@
+{
+    "log_dir": "logs",
+    "api": {
+        "dbname": "dalpha"
+    },
+    "producers": {
+        "file_client": {
+            "enabled": true,
+            "tag": "FILE.CLI",
+            "watch_dir": "out_message13_1_BYT_MAY_111.files",
+            "backup_dir": "source/out_message13_1_BYT_MAY_111.files",
+            "x-watch_dir": "D:/IE/files/buf/watch",
+            "x-backup_dir": "D:/IE/files/buf/results",
+            "interval": 2000
+        },
+        "http_client": {
+            "enabled": false,
+            "tag": "HTTP.CLI",
+            "url": "http://localhost:3040/next",
+            "xurl": "http://localhost:3040/next",
+            "interval": 3000
+        }
+    },
+    "consumers": {
+        "statistics": {
+            "dbname": "dalpha",
+            "enabled": true,
+            "stat_path": "stat/masterdata-stat.json",
+            "interval": 10000,
+            "parallel": 100
+        },
+        "message_handler": {
+            "dbname": "dalpha",
+            "enabled": true,
+            "parallel": 10,
+            "save_debug": true,
+            "msg_dir": "msg",
+            "err_dir": "err",
+            "log_dir": "log",
+            "dbg_dir": "dbg"
+        },
+        "message_recorder": {
+            "enabled": false,
+            "interval": 10000,
+            "parallel": 100
+        }
+    },
+    "production": {
+    },
+    "databases": {
+        "devalpha": {
+            "hrPool": {
+                "user": "I_USER3",
+                "password": "qwe123",
+                "cs": [
+                    " (DESCRIPTION = ",
+                    "    (ADDRESS_LIST = ",
+                    "      (ADDRESS = (PROTOCOL = TCP)(HOST = ol7-db08.infoenergo.loc)(PORT = 1521))",
+                    "    )",
+                    "    (CONNECT_DATA = ",
+                    "      (SERVER=DEDICATED)(SERVICE_NAME=SANDBOX)",
+                    "    )",
+                    "  )"
+                ],
+                "poolMin": 4,
+                "poolMax": 8,
+                "poolIncrement": 2
+            }
+        },
+        "talpha": {
+            "hrPool": {
+                "user": "I_USER3",
+                "password": "qwe123",
+                "cs": [
+                    " (DESCRIPTION = ",
+                    "    (ADDRESS_LIST = ",
+                    "      (ADDRESS = (PROTOCOL = TCP)(HOST = len-oda-alpha.energo.ru)(PORT = 1521))",
+                    "    )",
+                    "    (CONNECT_DATA = ",
+                    "      (SERVICE_NAME = talpha)",
+                    "    )",
+                    "  )"
+                ],
+                "poolMin": 2,
+                "poolMax": 8,
+                "poolIncrement": 2
+            }
+        },
+        "dalpha": {
+            "hrPool": {
+                "user": "I_USER3",
+                "password": "qwe123",
+                "cs": [
+                    " (DESCRIPTION = ",
+                    "    (ADDRESS_LIST = ",
+                    "      (ADDRESS = (PROTOCOL = TCP)(HOST = cd-vm-talpha.energo.ru)(PORT = 1521))",
+                    "    )",
+                    "    (CONNECT_DATA = ",
+                    "      (SERVICE_NAME = DALPHA)",
+                    "    )",
+                    "  )"
+                ],
+                "poolMin": 2,
+                "poolMax": 2,
+                "poolIncrement": 0
+            }
+        }
+    }
+}

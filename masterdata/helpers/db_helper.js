@@ -3,13 +3,12 @@
 const oracledb = require('oracledb');
 const log = require('log4js').getLogger('DBHelper');
 const Utils = require('./utils');
-const cfg = require('./../../config');
 
-class DBHelper {
+module.exports = class DBHelper {
 
-    constructor(options) {
+    constructor(cfg) {
         oracledb.extendedMetaData = true;
-        this.options = options;
+        this.options = cfg;
         this.options.connectString = this.options.cs.join('\n');
         this.pool = null;
     }
@@ -20,7 +19,6 @@ class DBHelper {
     }
 
     async getConnection() {
-        // return await oracledb.getConnection(this.options);
         return await this.pool.getConnection();
     }
 
@@ -36,34 +34,13 @@ class DBHelper {
         return null;
     }
 
-    // async connect() {
-    //     this.dbcon = await this.getConnection();
-    // }
-
-    // async disconnect() {
-    //     if (this.dbcon) {
-    //         try {
-    //             await this.dbcon.close();
-    //         }
-    //         catch{ }
-    //     }
-    // }
-
-    // async commit() {
-    //     await this.pool.commit();
-    // }
-
-    // async rollback() {
-    //     await this.pool.rollback();
-    // }
-
-
-    sleep(ms) {
-        return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-        });
+    async commit() {
+        await this.pool.commit();
     }
 
+    async rollback() {
+        await this.pool.rollback();
+    }
 
     async execSql(sql, autoCommit) {
         const res = {
@@ -114,9 +91,7 @@ class DBHelper {
             } catch (ex) {
                 res.error = ex.message;
                 log.error(ex.message);
-                // console.error(new Date().toISOString(), ex);
                 await Utils.sleep(3000);
-                // await this.sleep(3000);
                 dbcon = await this.getConnection();
             } finally {
                 if (res.success) {
@@ -392,7 +367,7 @@ class DBHelper {
         return ans;
     }
 
-    async handleFile(doc) {
+    async handleAbon(doc) {
         let res = true;
         const tran_id = Utils.getHash(doc.abon_kodp + new Date().getTime());
         const dbcon = await this.getConnection();
@@ -400,12 +375,12 @@ class DBHelper {
 
             await dbcon.execute(
                 'BEGIN ' +
-                'IEG_CONSUMER_MDM.PROCESS_DATA(:flow_type,:abon_kodp,:block_id); ' +
+                'IEG_CONSUMER_MDM.PROCESS_DATA(:abon_kodp,:block_id,:delete_source); ' +
                 'END;',
                 {
-                    flow_type: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow_type },
                     abon_kodp: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.abon_kodp },
-                    block_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: tran_id }
+                    block_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: tran_id },
+                    delete_source: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: 'N' },
                 },
                 {
                     resultSet: false,
@@ -641,5 +616,3 @@ class DBHelper {
     }
 
 }
-
-module.exports = new DBHelper(cfg.db.hrPool);

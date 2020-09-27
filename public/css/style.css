@@ -1,16 +1,4 @@
-body {
-  padding: 20px 30px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
-}
-
-a {
-  color: #00B7FF;
-}
-
 #templates {display: none;}
 
-#block_rows div.row{ margin: 10px 0;}
-#block_rows div.ERR{ color: red;}
-.tab_rows tr.ERR{ background-color: #ffdddd;}
 
 #dlgText {font-size: 10pt; font-family: monospace;}

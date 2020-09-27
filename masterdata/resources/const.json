@@ -4,7 +4,8 @@
         "ON_RECEIVE_ERR": "ON_RCV_ERR",
         "ON_RECEIVER_IDLE": "ON_RCV_IDLE",
         "ON_DB_CALL": "ON_DB_CALL",
-        "RCV_TIME": "RCV_TIME"
+        "RCV_TIME": "RCV_TIME",
+        "ON_CUNSUMERS_READY": "ON_CUNSUMERS_READY"
     },
     "MSG_TYPES": {
         "TYPE_MDM": "http://trinidata.ru/sigma/ОбъектЭнергоснабжения",

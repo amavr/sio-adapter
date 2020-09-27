@@ -9,12 +9,16 @@ const CONST = require('./resources/const.json');
 const DBHelper = require('./helpers/db_helper');
 const FileHelper = require('./helpers/file_helper');
 
-const hub = require('./event_hub');
-const stat = require('./statistics');
-const HttpClient = require('./http_client');
-const FileClient = require('./file_client');
-const MessageHandler = require('./message_handler');
-const MessageRecorder = require('./message_recorder');
+const hub = require('./framework/event_hub');
+
+const Statistics = require('./consumers/statistics');
+const MessageHandler = require('./consumers/message_handler');
+const TestConsumer = require('./consumers/test_consumer');
+
+const HttpClient = require('./producers/http_client');
+const FileClient = require('./producers/file_client');
+const FakeClient = require('./producers/fake_client');
+// const MessageRecorder = require('./consumers/message_recorder');
 
 module.exports = class Worker extends EventEmitter {
 
@@ -22,40 +26,34 @@ module.exports = class Worker extends EventEmitter {
         super();
 
         this.cfg = cfg;
+        this.cfg.dbLimit = 10;
+        this.cfg.fileLimit = 10;
 
-        this.msg_handler = new MessageHandler(this.cfg);
-        this.msg_recorder = new MessageRecorder(this.cfg);
-        this.stat = stat;
-        this.cli = new HttpClient(this.cfg);
+        this.stat = new Statistics(cfg.consumers.statistics);
+        this.msg_handler = new MessageHandler(cfg.consumers.message_handler);
+        this.test_consumer = new TestConsumer(cfg.consumers.test_consumer);
+        // this.msg_recorder = new MessageRecorder(cfg.consumers.message_recorder);
 
-        hub.subscribe(CONST.EVENTS.ON_NEW_MESSAGE, this.msg_recorder);
-        hub.subscribe(CONST.EVENTS.ON_NEW_MESSAGE, this.msg_handler);
-
-        hub.subscribe(CONST.EVENTS.ON_NEW_MESSAGE, this.stat);
-        hub.subscribe(CONST.EVENTS.ON_RECEIVE_ERR, this.stat);
-        hub.subscribe(CONST.EVENTS.ON_RECEIVER_IDLE, this.stat);
-        hub.subscribe(CONST.EVENTS.ON_DB_CALL, this.stat);
-
-        this.fcli = new FileClient({
-                watch_dir: 'D:/IE/files/buf/watch',
-                backup_dir: 'D:/IE/files/buf/results',
-                interval: 2000
-            }
-        );
-
-        // this.cli.addSubscriber(this.rec);
-        // this.cli.addSubscriber(this.hdl);
+        this.http_cli = new HttpClient(cfg.producers.http_client);
+        this.file_cli = new FileClient(cfg.producers.file_client);
+        this.fake_cli = new FakeClient(cfg.producers.fake_client);
     }
 
-    async check(){
+    async check() {
         return true;
     }
 
     async start() {
         log.info('WORKER STARTING');
-        // this.cli.exec();
+
+        await this.stat.init();
         await this.msg_handler.init();
-        await this.fcli.start();
+        await this.test_consumer.init();
+
+        await this.file_cli.start();
+        await this.http_cli.start();
+        await this.fake_cli.start();
+
         log.info('WORKER STARTED');
     }
 }

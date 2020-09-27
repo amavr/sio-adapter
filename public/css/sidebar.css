@@ -1,0 +1,86 @@
+/*
+    ADDITIONAL DEMO STYLE, NOT IMPORTANT TO MAKE THINGS WORK BUT TO MAKE IT A BIT NICER :)
+*/
+@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #fafafa;
+}
+
+p {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.1em;
+    font-weight: 300;
+    line-height: 1.7em;
+    color: #999;
+}
+
+/* a, a:hover, a:focus {
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.3s;
+} */
+
+.wrapper {
+    display: block;
+}
+
+
+#sidebar {
+    /* don't forget to add all the previously mentioned styles here too */
+    background: #f3f3f3;
+    color: #000;
+    transition: all 0.3s;
+    font-family: 'Montserrat';
+    xfont-family: 'Roboto';
+    min-width: 250px;
+    max-width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* top layer */
+    z-index: 9999;    
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: #4c4c4c;
+    color: #F58532;
+    font-family: 'Arial';
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+    xborder-bottom: 1px solid #8A8989;
+}
+
+#sidebar ul p {
+    color: #a2a2a2;
+    padding: 10px;
+}
+
+#sidebar ul li a {
+    padding: 10px;
+    font-size: 1.1em;
+    font-weight: 500;
+    display: block;
+    color: #a2a2a2;
+}
+#sidebar ul li a:hover {
+    xcolor: #F58532; 
+    background: #fff;
+    text-decoration: none;
+}
+
+#sidebar ul li.active > a, a[aria-expanded="true"] {
+    color: #828282;
+    background: #e4e4e4;
+}
+ul ul a {
+    font-size: 0.9em !important;
+    padding-left: 30px !important;
+    background: #f3f3f3;
+}

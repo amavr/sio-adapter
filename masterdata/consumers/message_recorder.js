@@ -3,8 +3,8 @@
 const path = require('path');
 const log = require('log4js').getLogger('handler.rec');
 
-const CONST = require('./resources/const.json');
-const FileHelper = require('./helpers/file_helper');
+const CONST = require('../resources/const.json');
+const FileHelper = require('../helpers/file_helper');
 
 module.exports = class MessageRecorder {
 
@@ -34,12 +34,12 @@ module.exports = class MessageRecorder {
         try {
             const msg = JSON.parse(pack.data);
             const fpath = path.join(this.msg_dir, pack.id);
-            await FileHelper.saveObjAsync(fpath, msg);
+            await FileHelper.saveObj(fpath, msg);
         }
         catch (ex) {
             log.error(ex.message);
             const fpath = path.join(this.msg_dir, pack.id);
-            await FileHelper.saveAsync(fpath, pack.data);
+            await FileHelper.save(fpath, pack.data);
         }
     }
 
