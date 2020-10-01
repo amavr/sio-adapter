@@ -3,10 +3,7 @@
 const log = require('log4js').getLogger('cli.file');
 const path = require('path');
 
-const CONST = require('../resources/const.json');
-const Utils = require('../helpers/utils');
 const FileHelper = require('../helpers/file_helper');
-const hub = require('../framework/event_hub');
 const Producer = require('../framework/producer');
 
 module.exports = class FileClient extends Producer {

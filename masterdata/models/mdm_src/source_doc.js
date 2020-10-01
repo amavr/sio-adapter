@@ -61,12 +61,53 @@ module.exports = class SourceDoc {
         const attp_points = Adapter.getVal(data, 'ОбеспечиваетсяЭэЧерезТочкиПоставки');
         this.nodes = attp_points === null ? null : SupPoint.parse(attp_points);
         
-        this.assignFlowType();
+        this.assignFlowType(attp_points);
     }
 
-    assignFlowType(){
+    getCounters(){
+        const counters = {
+            abon: 1,
+            dog: 1,
+            obj: 1,
+            attp: 0,
+            point: 0,
+            pu: 0,
+            ini: 0
+        };
+
+        /// ТП
+        if(this.nodes){
+            counters.attp = this.nodes.length;
+            this.nodes.forEach((attp_node) => {
+                /// ТУ
+                if(attp_node.nodes){
+                    counters.point += attp_node.nodes.length;
+                    attp_node.nodes.forEach((point_node) => {
+                        /// ПУ
+                        if(point_node.nodes){
+                            counters.pu += point_node.nodes.length;
+                            point_node.nodes.forEach((pu_node) => {
+                                /// Шкалы
+                                if(pu_node.nodes){
+                                    counters.ini += pu_node.nodes.length;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        return counters;
+    }
+
+    assignFlowType(attp_points){
         /// default value
-        const obj_id = this.nobj_kod_numobj.toUpperCase();
+        this.flow_type = 'ЮЛ';
+
+        if(attp_points === null || attp_points.length === 0) return;
+
+        const obj_id = attp_points[0]['@id'];
 
         if(obj_id.includes('ИЖС')){
             this.flow_type = 'ИЖС';

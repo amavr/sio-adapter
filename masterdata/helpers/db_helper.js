@@ -63,6 +63,20 @@ module.exports = class DBHelper {
         return res;
     }
 
+    async saveCounters(tag, counters){
+        const sql = 'insert into sio_counters_log(tag, code, value) values(:1, :2, :3)';
+        const rows = [];
+        for(var c of Object.keys(counters)){
+            rows.push([tag, c, counters[c]]);
+        }
+        if(rows.length > 0){
+            return await this.insertMany(sql, rows);
+        }
+        else{
+            return {};
+        }
+    }
+
     /**
      * Пакетная запись в БД.
      * !!! Перед вызовом метода нужно подключиться к базе - db_helper.connect(), а после - отключиться !!!
@@ -147,7 +161,7 @@ module.exports = class DBHelper {
         // let dbcon = await this.pool.getConnection();
         let dbcon = await this.getConnection();
         let code;
-        for (const doc_res of doc.results) {
+        for (const node of doc.nodes) {
             try {
                 code = -500;
                 // dbcon = await this.pool.getConnection();
@@ -166,10 +180,10 @@ module.exports = class DBHelper {
                     'end;',
                     {
                         id_ies_msg_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.id },
-                        id_ies_indicat_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc_res.id },
-                        id_ies_ini_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc_res.register_id },
+                        id_ies_indicat_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.id },
+                        id_ies_ini_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.register_id },
                         readlast_date_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: doc.dt },
-                        readlast_val_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc_res.value },
+                        readlast_val_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: node.value },
                         id_ies_poktype_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.type },
                         result_code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
                         result_msg: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
@@ -182,11 +196,11 @@ module.exports = class DBHelper {
 
                 code = res.outBinds.result_code;
                 if (!ans[code]) ans[code] = [];
-                ans[code].push({ register_id: doc_res.id, msg: res.outBinds.result_msg });
+                ans[code].push({ register_id: node.id, msg: res.outBinds.result_msg });
             }
             catch (ex) {
                 if (!ans[code]) ans[code] = [];
-                ans[code].push({ register_id: doc_res.id, msg: ex.message });
+                ans[code].push({ register_id: node.id, msg: ex.message });
                 console.error(ex);
                 await dbcon.rollback();
             }
@@ -202,13 +216,13 @@ module.exports = class DBHelper {
             chains: {}
         };
 
-        let dbcon = await this.getConnection();
+        let dbcon = null;
         try {
             for (const sup_point of doc.nodes) {
                 for (const cnt_point of sup_point.nodes) {
                     for (const cnt_device of cnt_point.nodes) {
                         try {
-                            // dbcon = await this.pool.getConnection();
+                            dbcon = await this.getConnection();
                             const sql =
                                 'begin ' +
                                 'ieg_consumer_mdm.find_chains(' +
@@ -245,8 +259,8 @@ module.exports = class DBHelper {
                                 autoCommit: true
                             };
 
-                            const script = DBHelper.getProcCall(sql, binds);
-                            console.log(script);
+                            // const script = DBHelper.getProcCall(sql, binds);
+                            // console.log(script);
 
                             const res = await dbcon.execute(sql, binds, opts);
                             const code = res.outBinds.result_code;
@@ -280,14 +294,14 @@ module.exports = class DBHelper {
         };
 
         try {
-            for (const sup_point of doc.supply_points) {
-                for (const cnt_point of sup_point.counter_points) {
-                    for (const cnt_device of cnt_point.counter_devices) {
+            for (const sup_point of doc.nodes) {
+                for (const cnt_point of sup_point.nodes) {
+                    for (const cnt_device of cnt_point.nodes) {
                         let has_fatal = false;
                         // const dbcon = await this.pool.getConnection();
                         const dbcon = await this.getConnection();
                         try {
-                            for (const register of cnt_device.registers) {
+                            for (const register of cnt_device.nodes) {
                                 // promises.push(
                                 const res = await dbcon.execute(
                                     'begin ' +
@@ -300,20 +314,22 @@ module.exports = class DBHelper {
                                     ':ies_coef,' +
                                     ':ies_before_dot,' +
                                     ':ies_after_dot,' +
+                                    ':flow_type, ' +
                                     ':register_id, ' +
                                     ':result_code, ' +
                                     ':result_data' +
                                     ');' +
                                     'end;',
                                     {
-                                        ies_register_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.id },
-                                        ies_point_pu_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: cnt_device.id },
-                                        ies_dir: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.direction },
-                                        ies_kind: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.kind },
-                                        ies_period: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.period },
-                                        ies_coef: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: register.coef },
-                                        ies_before_dot: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: register.int_size },
-                                        ies_after_dot: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: register.fraq_size },
+                                        ies_register_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.ini_kod_point_ini },
+                                        ies_point_pu_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: cnt_device.pu_kod_point_pu },
+                                        ies_dir: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.ini_kod_directen },
+                                        ies_kind: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.ini_energy },
+                                        ies_period: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: register.ini_kodinterval },
+                                        ies_coef: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: register.ini_rkoef },
+                                        ies_before_dot: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: register.ini_razr },
+                                        ies_after_dot: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: register.ini_razr2 },
+                                        flow_type: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow_type },
                                         register_id: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
                                         result_code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
                                         result_data: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
@@ -375,12 +391,13 @@ module.exports = class DBHelper {
 
             await dbcon.execute(
                 'BEGIN ' +
-                'IEG_CONSUMER_MDM.PROCESS_DATA(:abon_kodp,:block_id,:delete_source); ' +
+                'IEG_CONSUMER_MDM.PROCESS_DATA(:flow, :abon_kodp,:block_id,:delete_source); ' +
                 'END;',
                 {
+                    flow: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow_type },
                     abon_kodp: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.abon_kodp },
-                    block_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: tran_id },
-                    delete_source: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: 'N' },
+                    block_id: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: tran_id },
+                    delete_source: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: 'Y' },
                 },
                 {
                     resultSet: false,

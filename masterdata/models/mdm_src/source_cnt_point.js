@@ -69,11 +69,22 @@ module.exports = class SourceCntPoint {
 
     /// разбор массива точек поставки
     static parse(nodes) {
-        try {
-            return nodes.map(node => new SourceCntPoint(node));
+        const res = [];
+        for(const node of nodes){
+            try{
+                res.push(new SourceCntPoint(node));
+            }
+            catch(ex){
+                console.error(`BAD STRUCTURE FOR POINT WITH @ID = ${node['@id']}`);
+                console.error(ex.message);
+            }
         }
-        catch (ex) {
-            return [];
-        }
+        return res;
+        // try {
+        //     return nodes.map(node => new SourceCntPoint(node));
+        // }
+        // catch (ex) {
+        //     return [];
+        // }
     }
 }

@@ -3,9 +3,7 @@
 const got = require('got');
 const log = require('log4js').getLogger('cli.http');
 
-const CONST = require('../resources/const.json');
 const Utils = require('../helpers/utils');
-const hub = require('../framework/event_hub');
 const Producer = require('../framework/producer');
 
 module.exports = class HttpClient extends Producer {
@@ -21,9 +19,10 @@ module.exports = class HttpClient extends Producer {
         log.info(`READY ${this.url}`);
     }
 
+    /**
+     * return { id: fname, code: 200, data: txt }
+     */
     async handle() {
-
-        /// { id: fname, code: 200, data: txt }
         const answer = await context.request();
         if(answer.code === 204){
             return null;

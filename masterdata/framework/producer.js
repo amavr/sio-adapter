@@ -9,12 +9,14 @@ const hub = require('./event_hub');
 
 module.exports = class Producer extends EventEmitter {
 
-    constructor(cfg) {
+    constructor(cfg, msgFactory) {
         super();
 
         this.interval = cfg.interval;
         this.tag = cfg.tag;
         this.enabled = cfg.enabled;
+
+        this.factory = msgFactory;
 
         this.timer = null;
     }
@@ -34,10 +36,6 @@ module.exports = class Producer extends EventEmitter {
             hub.registerSender(this);
         }
     }
-
-    // async onReady(context) {
-    //     await this.execute(context);
-    // }
 
     async execute(context) {
         /// сброс таймера если есть
@@ -59,6 +57,10 @@ module.exports = class Producer extends EventEmitter {
                     await context.onIdle();
                     break;
                 }
+
+                /// 
+                // const msg = context.msgFactory.build(pack);
+
                 /// последовательное выполнение
                 // await context.onData(pack);
 
@@ -69,6 +71,7 @@ module.exports = class Producer extends EventEmitter {
             }
             catch (ex) {
                 log.error(ex.message);
+                await this.onError(ex.message);
                 break;
             }
         }
@@ -80,12 +83,12 @@ module.exports = class Producer extends EventEmitter {
         await hub.sendEvent(pack);
     }
 
-    async onError(pack) {
-        await hub.sendEvent(pack);
+    async onError(errMsg) {
+        await hub.sendEvent({ id: null, data: errMsg});
     }
 
     async onIdle() {
-        // await hub.sendEvent({ id: null, data: null });
+        await hub.sendEvent({ id: null, data: null });
     }
 
 }

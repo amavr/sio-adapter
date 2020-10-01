@@ -14,7 +14,7 @@
         "file_client": {
             "enabled": true,
             "tag": "FILE.CLI",
-            "interval": 200,
+            "interval": 2000,
 
             "x-watch_dir": "13.1",
             "x-backup_dir": "13.1.backup",
@@ -41,8 +41,9 @@
             "enabled": true,
             "parallel": 100,
 
+            "dbname": "dalpha",
             "stat_path": "stat/masterdata-stat.json",
-            "save_interval": 10000
+            "save_interval": 60000
         },
         "message_handler": {
             "enabled": true,

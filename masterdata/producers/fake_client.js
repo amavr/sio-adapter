@@ -7,8 +7,8 @@ const Producer = require('../framework/producer');
 
 module.exports = class FakeClient extends Producer {
 
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg/*, msgFactory*/) {
+        super(cfg/*, msgFactory*/);
         this.delay = cfg.delay;
         log.info(`READY with delay = ${this.delay} msec`);
     }

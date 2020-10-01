@@ -88,26 +88,24 @@ module.exports = class MessageHandler extends Consumer {
 
             const res = await this.db_helper.insertMany(sql, rows_data);
 
-            return;
-
             if (res.batchErrors) {
                 log.warn(res.batchErrors);
             }
 
             const time2 = new Date().getTime();
             /// ПОИСК ПОЛНЫХ ЦЕПОЧЕК --------------------------------------------
-            const ans_chains = await this.db_helper.findChains(doc, fname);
+            // const ans_chains = await this.db_helper.findChains(doc, fname); /// перенесено в БД
 
             const time3 = new Date().getTime();
             /// ПОИСК ИЛИ СОЗДАНИЕ ШКАЛ --------------------------------------------
-            const ans_registers = await this.db_helper.findRegisters(doc);
+            // const ans_registers = await this.db_helper.findRegisters(doc);
 
             const time4 = new Date().getTime();
             /// ЗАПУСК ОСНОВНОЙ ОБРАБОТКИ  --------------------------------------------
             const ans_handle = await this.db_helper.handleAbon(doc, fname);
 
             const end_time = new Date().getTime();
-            console.log(`${file.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
+            console.log(`${fname.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
         }
         catch (ex) {
             log.error(ex);
@@ -136,7 +134,7 @@ module.exports = class MessageHandler extends Consumer {
         }
 
         const doc = new VolumeDoc(msg);
-        for (const sup_point of doc.sup_points) {
+        for (const sup_point of doc.nodes) {
             /// отладочная информация
             const sup_info = {
                 balance: sup_point.kod_attpoint,

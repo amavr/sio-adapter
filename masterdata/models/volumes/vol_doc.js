@@ -9,9 +9,26 @@ module.exports = class VolumeDoc {
 
     constructor(data) {
         this.pfx = data['@type'].replace(Utils.extractLastSegment(data['@type']), '');
-        this.sup_points = VolumeSupPoint.parse(data['РассчитанныйОбъемВТочкеПоставки']);
+        this.nodes = VolumeSupPoint.parse(data['РассчитанныйОбъемВТочкеПоставки']);
     }
 
+    getCounters(){
+        const counters = {
+            attp: 0,
+            point: 0
+        };
+
+        if(this.nodes){
+            counters.attp += this.nodes.length;
+            this.nodes.forEach((attp_point) => {
+                if(attp_point.nodes){
+                    counters.point += attp_point.nodes.length;
+                }
+            });
+        }
+
+        return counters;
+    }
 
     static getColNames() {
         if (VolumeDoc.col_names === null) {
@@ -44,12 +61,12 @@ module.exports = class VolumeDoc {
          */
         const rows = [];
         /// Если потомков нет, то нужно вернуть только одну строку с пустыми значениями потомка
-        if (this.sup_points.length === 0) {
+        if (this.nodes.length === 0) {
             rows.push(VolumeSupPoint.getEmpty(rep_data));
         }
         else {
             /// цикл по вложенным объектам
-            for (const node of this.sup_points) {
+            for (const node of this.nodes) {
                 /// каждый потомок возращает массив строк c учетом родительских значений
                 for (const row of node.getColValues(my_data)) {
                     /// проверка на значение-массив (да-да и такое встречается!)
@@ -85,7 +102,7 @@ module.exports = class VolumeDoc {
 
     getInserts(filename){
         const lines = [];
-        for(const p of this.sup_points){
+        for(const p of this.nodes){
             for(const line of p.getInsertStrings()){
                 lines.push(line.replace('##F##', filename));
             }
@@ -95,7 +112,7 @@ module.exports = class VolumeDoc {
 
     getInsertValues(filename){
         const vals = [];
-        for(const p of this.sup_points){
+        for(const p of this.nodes){
             for(const row_vals of p.getInsertValues(filename)){
                 vals.push(row_vals);
             }

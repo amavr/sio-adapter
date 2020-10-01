@@ -9,7 +9,20 @@ module.exports = class Indicat {
         this.device_id = null;
         this.type = null;
         this.dt = null;
-        this.results = [];
+        this.nodes = [];
+    }
+
+    getCounters(){
+        const counters = {
+            ind: 1,
+            ini: 0
+        };
+
+        if(this.nodes){
+            counters.ini = this.nodes.length;
+        }
+
+        return counters;
     }
 
     static parse(node) {
@@ -18,10 +31,8 @@ module.exports = class Indicat {
         ind.device_id = node['ПуПоказаний'];
         ind.type = node['ИмеетСпособПолученияПоказаний'];
         ind.dt = new Date(node['ДатаСнятияПоказаний']);
-        ind.results = Result.parse(node['СнятыеПоказанияРегистра']);
+        ind.nodes = Result.parse(node['СнятыеПоказанияРегистра']);
         return ind;
     }
-
-
 
 }

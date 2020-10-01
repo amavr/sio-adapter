@@ -17,7 +17,7 @@ module.exports = class VolumeSupPoint {
 
     constructor(node) {
         this.kod_attpoint = node['ОбъемВТочкеБаланса'];
-        this.cnt_points = VolumeCntPoint.parse(node['РассчитанныйОбъемВТочкеУчета']);
+        this.nodes = VolumeCntPoint.parse(node['РассчитанныйОбъемВТочкеУчета']);
         /// словарь по типам потребления, где в значении - сумма значений для всех элементов с таким ключем
         this.values = this.sumByReadingAndType();
         this.groups = this.groupByReading();
@@ -61,7 +61,7 @@ module.exports = class VolumeSupPoint {
         /// словарь по хэшам
         const groups = {};
 
-        for (const item of this.cnt_points) {
+        for (const item of this.nodes) {
             const hash = item.getHash();
             if (groups[hash] === undefined) {
                 groups[hash] = {
@@ -129,7 +129,7 @@ module.exports = class VolumeSupPoint {
     /// суммирование значений по ключу (послед.показания)
     sumByReadingAndType() {
         const dic = {};
-        for (const item of this.cnt_points) {
+        for (const item of this.nodes) {
             const count_point_key = item.getKey();
             const item_type = item.type;
 
@@ -190,7 +190,7 @@ module.exports = class VolumeSupPoint {
         const rows = [];
 
         /// Если потомков нет, то нужно вернуть только одну строку с пустыми значениями потомка
-        if (this.cnt_points.length === 0) {
+        if (this.nodes.length === 0) {
             rows.push(VolumeCntPoint.getEmpty(rep_data));
         }
         else {
@@ -342,7 +342,7 @@ module.exports = class VolumeSupPoint {
 
     getRowCount() {
         const hashes = [];
-        for (const item of this.cnt_points) {
+        for (const item of this.nodes) {
             const hash = item.getHash();
             if (hashes.includes(hash) === false) {
                 hashes.push(hash);
@@ -358,7 +358,7 @@ module.exports = class VolumeSupPoint {
         const dic = {};
 
         for (const key of ext_ids) {
-            const c = this.cnt_points.find(point => {
+            const c = this.nodes.find(point => {
                 // return point.last_reg_key === key && point.type === KEY_CONSUMING;
                 return point.last_reg_key === key;
             });
@@ -372,7 +372,7 @@ module.exports = class VolumeSupPoint {
     }
 
     findKeys() {
-        return this.cnt_points
+        return this.nodes
             .map(point => point.last_reg_key)
             .filter((val, index, self) => self.indexOf(val) === index);
     }
@@ -384,7 +384,7 @@ module.exports = class VolumeSupPoint {
             return accum + (point.type === CONST.KEY_PU ? 0 : point.value)
         };
 
-        return this.cnt_points
+        return this.nodes
             /// отфильтрованные по ключу
             .filter(p => p.last_reg_key === ext_id)
             /// просуммированные

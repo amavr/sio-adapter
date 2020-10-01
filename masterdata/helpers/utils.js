@@ -17,9 +17,9 @@ module.exports = class Utils {
 
     static getHash(str) {
         // return Array.from(str).reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0);
-        return Array.from(str).reduce((s, c) => {
+        return Math.abs( Array.from(str).reduce((s, c) => {
             return Math.imul(31, s) + c.charCodeAt(0) | 0
-        }, 0);
+        }, 0));
     }
 
     static randomString(size) {
