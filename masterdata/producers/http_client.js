@@ -23,7 +23,7 @@ module.exports = class HttpClient extends Producer {
      * return { id: fname, code: 200, data: txt }
      */
     async handle() {
-        const answer = await context.request();
+        const answer = await this.request();
         if(answer.code === 204){
             return null;
         }
@@ -52,7 +52,8 @@ module.exports = class HttpClient extends Producer {
             if (resp.body.length > 0) {
                 answer.id = msgId ? msgId : Utils.getTimeLabel() + '.' + Utils.randomString(3) + '.txt';
                 try {
-                    answer.data = JSON.parse(resp.body);
+                    // answer.data = JSON.parse(resp.body);
+                    answer.data = resp.body;
                 }
                 catch (ex) {
                     answer.data = ex.message;

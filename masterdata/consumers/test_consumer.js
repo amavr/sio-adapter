@@ -22,7 +22,7 @@ module.exports = class TestConsumer extends Consumer {
         });
     }
 
-    async executeEvent(pack) {
+    async processMsg(msg) {
         await Utils.sleep(this.delay);
     }
 }

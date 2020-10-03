@@ -3,7 +3,6 @@
 const EventEmitter = require('events');
 const log = require('log4js').getLogger('consumer');
 const hub = require('./event_hub');
-const factory = require('./msg_factory');
 
 module.exports = class Consumer extends EventEmitter {
 
@@ -23,13 +22,11 @@ module.exports = class Consumer extends EventEmitter {
     }
 
     /// возващает promise
-    async onData(pack) {
+    async onData(msg) {
         let id = null;
         try {
-            id = pack.id;
+            id = msg.id;
             this.onStart();
-
-            const msg = factory.build(pack);
 
             await this.processMsg(msg)
                 .finally(() => {

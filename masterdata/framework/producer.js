@@ -6,17 +6,16 @@ const log = require('log4js').getLogger('producer');
 
 const CONST = require('../resources/const.json');
 const hub = require('./event_hub');
+const msgFactory = require('./msg_factory');
 
 module.exports = class Producer extends EventEmitter {
 
-    constructor(cfg, msgFactory) {
+    constructor(cfg) {
         super();
 
         this.interval = cfg.interval;
         this.tag = cfg.tag;
         this.enabled = cfg.enabled;
-
-        this.factory = msgFactory;
 
         this.timer = null;
     }
@@ -32,7 +31,7 @@ module.exports = class Producer extends EventEmitter {
     async start() {
         if (this.enabled) {
             const context = this;
-            this.timer =  setTimeout(this.execute, this.interval, this)
+            this.timer = setTimeout(this.execute, this.interval, this)
             hub.registerSender(this);
         }
     }
@@ -47,25 +46,26 @@ module.exports = class Producer extends EventEmitter {
         /// работает только когда hub готов принимать
         while (true) {
             /// ожидание когда все потребители освободятся
-            while(!hub.allConsumersReady){
+            while (!hub.allConsumersReady) {
                 await Utils.sleep(100);
             }
 
+            const pack = await context.handle();
+            if (pack === null) {
+                log.debug('IDLE');
+                await context.onIdle();
+                break;
+            }
             try {
-                const pack = await context.handle();
-                if (pack === null) {
-                    await context.onIdle();
-                    break;
-                }
 
                 /// 
-                // const msg = context.msgFactory.build(pack);
+                const msg = msgFactory.createMsg(pack);
 
                 /// последовательное выполнение
-                // await context.onData(pack);
+                // await context.onData(msg);
 
                 /// параллельное выполнение
-                context.onData(pack);
+                context.onData(msg);
 
                 // log.debug('send data');
             }
@@ -73,7 +73,7 @@ module.exports = class Producer extends EventEmitter {
                 log.error(ex.message);
                 pack.code = 400;
                 pack.data = ex.message;
-                await this.onError(pack);
+                await context.onError(pack);
                 break;
             }
         }
@@ -81,12 +81,11 @@ module.exports = class Producer extends EventEmitter {
         context.timer = setTimeout(context.execute, context.interval, context);
     }
 
-    async onData(pack) {
-        await hub.sendEvent(pack);
+    async onData(msg) {
+        await hub.sendEvent(msg);
     }
 
     async onError(pack) {
-
         await hub.sendEvent(pack);
     }
 

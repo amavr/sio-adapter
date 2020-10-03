@@ -3,6 +3,7 @@
 module.exports = class BaseMsg{
     constructor(data){
         this.id = data.id;
+        this.tag = 'SYS';
         this.counters = null;
         this.colNames = null;
         this.colValues = null;

@@ -12,7 +12,7 @@
             "delay": 100
         },
         "file_client": {
-            "enabled": true,
+            "enabled": false,
             "tag": "FILE.CLI",
             "interval": 2000,
 
@@ -22,11 +22,11 @@
             "backup_dir": "watch.backup"
         },
         "http_client": {
-            "enabled": false,
+            "enabled": true,
             "tag": "HTTP.CLI",
             "interval": 3000,
 
-            "url": "http://localhost:3002/api/v1/msg",
+            "url": "http://localhost:3004/api/v1/rnd",
             "xurl": "http://localhost:3040/next"
         }
     },
@@ -39,11 +39,11 @@
         },
         "statistics": {
             "enabled": true,
-            "parallel": 100,
+            "parallel": 20,
 
             "dbname": "dalpha",
             "stat_path": "stat/masterdata-stat.json",
-            "save_interval": 60000
+            "save_at_second": 20
         },
         "message_handler": {
             "enabled": true,
@@ -55,12 +55,6 @@
             "err_dir": "results/err",
             "log_dir": "results/log",
             "dbg_dir": "results/dbg"
-        },
-        "message_recorder": {
-            "enabled": false,
-            "parallel": 100,
-
-            "interval": 10000
         }
     },
     "databases": {

@@ -63,11 +63,14 @@ module.exports = class DBHelper {
         return res;
     }
 
-    async saveCounters(tag, counters){
+    async saveCounters(counters){
         const sql = 'insert into sio_counters_log(tag, code, value) values(:1, :2, :3)';
         const rows = [];
-        for(var c of Object.keys(counters)){
-            rows.push([tag, c, counters[c]]);
+        for(const tag of Object.keys(counters)){
+            const tag_counters = counters[tag];
+            for(const key of Object.keys(tag_counters)){
+                rows.push([tag, key, tag_counters[key]]);
+            }
         }
         if(rows.length > 0){
             return await this.insertMany(sql, rows);

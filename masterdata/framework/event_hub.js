@@ -36,10 +36,10 @@ class EventHub {
         this.allConsumersReady = this.subs.every(sub => sub.isReady());
     }
 
-    async sendEvent(data) {
+    async sendEvent(msg) {
         /// подписчики на событие
         for (const sub of this.subs) {
-            await sub.onData(data);
+            await sub.onData(msg);
         }
     }
 

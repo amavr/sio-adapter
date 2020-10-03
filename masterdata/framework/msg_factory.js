@@ -3,6 +3,7 @@
 class MsgFactory{
     constructor(){
         this.build = null;
+        console.log('MsgFactory created');
     }
 
     setBuildProc(messageBuildProc){

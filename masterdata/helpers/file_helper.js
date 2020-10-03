@@ -29,6 +29,12 @@ class FileHelper {
         return fsp.readdir(dirPath, options);
     }
 
+    static async getRandomFileName(dirPath){
+        const files = await FileHelper.getFiles(dirPath);
+        const i = Math.floor(Math.random() * files.length);
+        return files[i];
+    }
+
     static readAsObject(filePath) {
         return new Promise((resolve, reject) => {
             // fsp.readFile(filePath)

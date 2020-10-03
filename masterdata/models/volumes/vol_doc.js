@@ -10,6 +10,8 @@ module.exports = class VolumeDoc extends BaseMsg {
 
     constructor(data) {
         super(data);
+        this.tag = '16.1';
+
         this.pfx = data['@type'].replace(Utils.extractLastSegment(data['@type']), '');
         this.nodes = VolumeSupPoint.parse(data['РассчитанныйОбъемВТочкеПоставки']);
     }

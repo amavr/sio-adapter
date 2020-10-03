@@ -56,56 +56,6 @@ module.exports = class MessageHandler extends Consumer {
         }
     }
 
-    // async executeEvent(pack) {
-    //     // log.debug('MessageHandler.onMessage');
-    //     if (pack.data === null) return;
-
-    //     try {
-    //         if (pack.code === 200) {
-    //             pack.data = JSON.parse(pack.data);
-    //             const ies_type = pack.data['@type'];
-
-    //             if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
-    //                 log.info(`${pack.id} [6.1]`);
-    //                 await this.onPack61(pack);
-    //             } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
-    //                 log.info(`${pack.id} [13.1]`);
-    //                 await this.onPack131(pack);
-    //             } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
-    //                 log.info(`${pack.id} [16.1]`);
-    //                 await this.onPack161(pack);
-    //             } else {
-    //                 pack.error = 'UNKNOWN-TYPE arrived';
-    //                 log.error(pack.error);
-    //                 await this.onMessageErr(pack);
-    //             }
-    //         }
-    //         else {
-    //             pack.error = 'NON-JSON arrived';
-    //             await this.onMessageErr(pack);
-    //         }
-    //     }
-    //     catch (ex) {
-    //         pack.error = ex.message;
-    //         await this.onMessageErr(pack);
-    //     }
-    // }
-
-    async onPack61(pack) {
-        const msg = pack.data;
-        const fname = pack.id ? pack.id : 'NONAME.' + Utils.getTimeLabel() + '.txt';
-        try {
-            const doc = new SourceDoc(msg);
-            doc.id = fname;
-            await this.onMsg61(doc);
-        }
-        catch (ex) {
-            log.error(ex);
-            const fpath = path.join(this.err_dir, fname + '.txt');
-            FileHelper.saveObj(fpath, msg);
-        }
-    }
-
     async onMsg61(doc) {
         const time1 = new Date().getTime();
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
@@ -125,7 +75,6 @@ module.exports = class MessageHandler extends Consumer {
 
         return;
 
-
         const time2 = new Date().getTime();
         /// ПОИСК ПОЛНЫХ ЦЕПОЧЕК --------------------------------------------
         // const ans_chains = await this.db_helper.findChains(doc, doc.id); /// перенесено в БД
@@ -142,14 +91,9 @@ module.exports = class MessageHandler extends Consumer {
         console.log(`${doc.id.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
     }
 
-    async onPack131(pack) {
-        const msg = pack.data;
-        const doc = new IndicatDoc(msg);
-        doc.id = pack.id;
-        await this.onMsg131(doc);
-    }
-
     async onMsg131(doc) {
+        return;
+
         const answer = await this.db_helper.saveIndicat(doc);
         if (this.save_debug) {
             const codes = '.' + Object.keys(answer).join('.');
@@ -158,21 +102,30 @@ module.exports = class MessageHandler extends Consumer {
         }
     }
 
-    async onPack161(pack) {
-        log.debug('receive 16.1')
-        const msg = pack.data;
-        const doc = new VolumeDoc(msg);
-
-        await onMsg161(doc);
-    }
-
     async onMsg161(doc) {
         log.debug('receive 16.1')
-        const msg = pack.data;
 
         const result = {
             att_points: [],
         }
+
+        /// ЗАГРУЗКА В SIO_MSG16_1 --------------------------------------------
+        const rows_data = doc.getColValues(doc.id);
+        const columns = VolumeDoc.getColNames();
+        const sql = `insert into sio_msg16_1(`
+            + columns.join(', ')
+            + ') values('
+            + columns.map((e, i) => `:${i + 1}`).join(', ')
+            + ')';
+
+        const res = await this.db_helper.insertMany(sql, rows_data);
+
+        if (res.batchErrors) {
+            log.warn(res.batchErrors);
+        }
+
+        return;
+
 
         for (const sup_point of doc.nodes) {
             /// отладочная информация

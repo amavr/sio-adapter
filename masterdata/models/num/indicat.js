@@ -7,6 +7,7 @@ module.exports = class Indicat extends BaseMsg {
 
     constructor(data){
         super(data);
+        this.tag = '13.1';
 
         this.ind_id = data['@id'];
         this.device_id = data['ПуПоказаний'];

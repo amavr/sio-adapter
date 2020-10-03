@@ -16,6 +16,8 @@ module.exports = class SourceDoc extends BaseMsg {
 
     constructor(data) {
         super(data);
+        this.tag = '6.1';
+
         Adapter.normalize(data, '',
             [
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки',

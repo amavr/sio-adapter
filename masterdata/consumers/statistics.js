@@ -5,7 +5,7 @@ const log = require('log4js').getLogger('handler.stat');
 const moment = require('moment');
 
 const Consumer = require('../framework/consumer');
-const BaseMsg = require('./framework/base_msg');
+const BaseMsg = require('../framework/base_msg');
 
 const DBHelper = require('../helpers/db_helper');
 const FileHelper = require('../helpers/file_helper');
@@ -15,9 +15,7 @@ module.exports = class Statistics extends Consumer {
 
     constructor(cfg) {
         super(cfg);
-        this.save_interval = cfg.save_interval;
-        this.stat_path = path.join(cfg.work_dir, cfg.stat_path);
-        this.day_label = '';
+        this.save_at_second = cfg.save_at_second;
         this.counters = {};
 
         this.db_helper = new DBHelper(cfg.db);
@@ -31,79 +29,79 @@ module.exports = class Statistics extends Consumer {
         await this.db_helper.init();
         await this.db_helper.execSql('select 1 from dual');
 
-        const context = this;
-        setInterval(async () => {
-            await this.saveCounters(context);
-        }, this.save_interval);
+        await this.saveStartEvent();
+
+        // this.saveAt(this, this.calcTimeout(this));
 
         log.info('READY');
     }
 
-    emptyData() {
-        return {
-            dates: {},
-            starts: []
+    async saveStartEvent() {
+        const msg = new BaseMsg({ id: 'START' });
+        const counters = msg.getCountersData();
+        counters.start = 1;
+        this.addCounters(msg);
+        await this.saveCounters(this);
+    }
+
+    async processMsg(msg) {
+        if (msg === null) return;
+        if (msg.id === null) return;
+
+        this.addCounters(msg);
+    }
+
+    addCounters(msg) {
+        const msg_counters = msg.getCountersData();
+
+        /// нет счетчиков для метки сообщения
+        if (this.counters[msg.tag] === undefined) {
+            this.counters[msg.tag] = msg_counters;
+        }
+        else {
+            Object.keys(msg_counters).forEach((key) => {
+                if (this.counters[msg.tag][key] === undefined) {
+                    this.counters[msg.tag][key] = msg_counters[key];
+                }
+                else {
+                    this.counters[msg.tag][key] += msg_counters[key];
+                }
+            });
         }
     }
 
-    async initFile() {
-        this.data = this.emptyData();
-        if (FileHelper.FileExistsSync(this.stat_path)) {
-            try {
-                this.data = await FileHelper.readAsObject(this.stat_path);
-            }
-            catch (ex) {
-                log.error(`read stat file error: "${ex.message}" at ${this.stat_path}`);
-                FileHelper.moveFileSync(this.stat_path, this.stat_path + '.' + Utils.getTimeLabel() + '.broken');
-                this.data = this.emptyData();
-            }
-        }
-        this.data.starts.push(new Date().toISOString().substr(0, 19));
-        this.addToday();
-        FileHelper.saveObjSync(this.stat_path, this.data);
+    calcTimeout(context) {
+        const seconds = new Date().getSeconds();
+        let x = seconds > context.save_at_second 
+            ? 60 - (seconds - context.save_at_second)
+            : context.save_at_second - seconds;
 
-        const context = this;
-        setInterval(async () => {
-            await FileHelper.saveObj(context.stat_path, context.data);
-        }, this.save_interval);
+        if(x < 3) {
+            x = 60 + x;
+        }
+
+        // console.log(x);
+        return x * 1000;
     }
 
-    addToday() {
-        const day = new Date().toISOString().substr(0, 10);
-        if (this.day_label === day) return;
-        this.day_label = day;
-
-        if (this.data.dates[day] === undefined) {
-            this.data.dates[day] = {};
-        }
-        this.counters = this.data.dates[day];
-    }
-
-    async executeEvent(pack) {
-        const type =
-            pack.data === null ? 'idle'
-                : pack.id === null ? 'error'
-                    : 'msg';
-
-        await this.addEvent(type);
-        // if (type !== 'idle') {
-        //     await this.addEvent(type);
-        // }
-    }
-
-    async addEvent(eventType) {
-        if (this.counters[eventType] === undefined) {
-            this.counters[eventType] = 0;
-        }
-        this.counters[eventType]++;
+    async saveAt(context, msec) {
+        setTimeout(async () => {
+            await context.saveCounters(context);
+        }, msec);
     }
 
     async saveCounters(context) {
-        const res = context.db_helper.saveCounters('node', context.counters);
-        if(res.batchErrors){
-            log.error(res.batchErrors);
+        try {
+            const res = await context.db_helper.saveCounters(context.counters);
+            if (res.batchErrors) {
+                log.warn(res.batchErrors);
+            }
+            /// сброс счетчиков
+            context.counters = {};
         }
-
-        context.counters = {};
+        catch (ex) {
+            log.error(ex.message);
+        }
+        context.saveAt(context, context.calcTimeout(context));
     }
 }
