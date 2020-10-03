@@ -21,7 +21,7 @@ module.exports = class SourceCntPoint {
         ]
     }
 
-    static getEmpty(owner_data){
+    static getEmpty(owner_data) {
         const rep_data = [...owner_data, ...[null, null, null, null, null]];
         return CntDevice.getEmpty(rep_data);
     }
@@ -39,7 +39,7 @@ module.exports = class SourceCntPoint {
             /// цикл по вложенным объектам
             for (const node of this.nodes) {
                 /// каждый потомок возращает массив строк
-                for(const row of node.getColValues(rep_data)){
+                for (const row of node.getColValues(rep_data)) {
                     rows.push(row);
                 }
             }
@@ -70,21 +70,17 @@ module.exports = class SourceCntPoint {
     /// разбор массива точек поставки
     static parse(nodes) {
         const res = [];
-        for(const node of nodes){
-            try{
-                res.push(new SourceCntPoint(node));
-            }
-            catch(ex){
-                console.error(`BAD STRUCTURE FOR POINT WITH @ID = ${node['@id']}`);
-                console.error(ex.message);
+        if (nodes) {
+            for (const node of nodes) {
+                try {
+                    res.push(new SourceCntPoint(node));
+                }
+                catch (ex) {
+                    console.warn(`BAD STRUCTURE FOR POINT WITH @ID = ${node['@id']}`);
+                    console.warn(ex.message);
+                }
             }
         }
         return res;
-        // try {
-        //     return nodes.map(node => new SourceCntPoint(node));
-        // }
-        // catch (ex) {
-        //     return [];
-        // }
     }
 }

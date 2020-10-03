@@ -47,7 +47,7 @@
         },
         "message_handler": {
             "enabled": true,
-            "parallel": 10,
+            "parallel": 20,
 
             "dbname": "dalpha",
             "save_debug": true,
@@ -117,8 +117,8 @@
                     "  )"
                 ],
                 "poolMin": 2,
-                "poolMax": 2,
-                "poolIncrement": 0
+                "poolMax": 20,
+                "poolIncrement": 2
             }
         }
     }

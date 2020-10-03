@@ -2,12 +2,14 @@
 
 const VolumeSupPoint = require("./vol_sup");
 const Utils = require('../../helpers/utils');
+const BaseMsg = require('../../framework/base_msg');
 
-module.exports = class VolumeDoc {
+module.exports = class VolumeDoc extends BaseMsg {
 
     static col_names = null;
 
     constructor(data) {
+        super(data);
         this.pfx = data['@type'].replace(Utils.extractLastSegment(data['@type']), '');
         this.nodes = VolumeSupPoint.parse(data['РассчитанныйОбъемВТочкеПоставки']);
     }

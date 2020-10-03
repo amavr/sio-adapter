@@ -5,6 +5,8 @@ const log = require('log4js').getLogger('handler.stat');
 const moment = require('moment');
 
 const Consumer = require('../framework/consumer');
+const BaseMsg = require('./framework/base_msg');
+
 const DBHelper = require('../helpers/db_helper');
 const FileHelper = require('../helpers/file_helper');
 const Utils = require('../helpers/utils');

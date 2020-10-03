@@ -10,7 +10,8 @@
     "MSG_TYPES": {
         "TYPE_MDM": "http://trinidata.ru/sigma/ОбъектЭнергоснабжения",
         "TYPE_VOL": "http://trinidata.ru/sigma/ПередачаОбъемов",
-        "TYPE_IND": "http://trinidata.ru/sigma/Показания"
+        "TYPE_IND": "http://trinidata.ru/sigma/Показания",
+        "NO_TYPE": "-"
     },
     "LOSSES": {
         "KEY_PU": "http://trinidata.ru/sigma/ВидыПотребленияПУ",

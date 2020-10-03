@@ -18,36 +18,41 @@ module.exports = class FileClient extends Producer {
     }
 
     async handle() {
-        const fname = await this.getFile();
-        if (fname === undefined) {
-            await this.onIdle();
-            return null;
+        try {
+            const fname = await this.getFile();
+            if (fname === undefined) {
+                await this.onIdle();
+                return null;
+            }
+            else {
+                const sour_path = path.join(this.watch_dir, fname);
+                const dest_path = path.join(this.backup_dir, fname);
+                const txt = await FileHelper.read(sour_path);
+                FileHelper.moveFileSync(sour_path, dest_path);
+                return { id: fname, code: 200, data: txt };
+            }
         }
-        else {
-            const sour_path = path.join(this.watch_dir, fname);
-            const dest_path = path.join(this.backup_dir, fname);
-            const txt = await FileHelper.read(sour_path);
-            FileHelper.moveFileSync(sour_path, dest_path);
-            return { id: fname, code: 200, data: txt };
+        catch(ex){
+            log.error(ex.message);
         }
     }
 
-    async getFile(){
+    async getFile() {
         const fname = this.getFileFromBuffer();
-        if(fname){
+        if (fname) {
             return fname;
         }
-        else{
+        else {
             await this.refreshBuffer();
             return this.getFileFromBuffer();
         }
     }
 
-    getFileFromBuffer(){
+    getFileFromBuffer() {
         return this.buffer.shift();
     }
 
-    async refreshBuffer(){
+    async refreshBuffer() {
         this.buffer = await FileHelper.getFiles(this.watch_dir);
     }
 

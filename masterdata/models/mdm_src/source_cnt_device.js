@@ -25,7 +25,7 @@ module.exports = class SourceCntDevice {
         ]
     }
 
-    static getEmpty(owner_data){
+    static getEmpty(owner_data) {
         const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null, null]];
         return Register.getEmpty(rep_data);
     }
@@ -43,7 +43,7 @@ module.exports = class SourceCntDevice {
             /// цикл по вложенным объектам
             for (const node of this.nodes) {
                 /// каждый потомок возращает массив строк
-                for(const row of node.getColValues(rep_data)){
+                for (const row of node.getColValues(rep_data)) {
                     rows.push(row);
                 }
             }
@@ -81,16 +81,18 @@ module.exports = class SourceCntDevice {
 
     /// разбор массива точек поставки
     static parse(nodes) {
-        if(nodes === undefined){
-            return [];
+        const res = [];
+        if (nodes) {
+            for (const node of nodes) {
+                try {
+                    res.push(new SourceCntDevice(node));
+                }
+                catch (ex) {
+                    console.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${node['@id']}`);
+                    console.warn(`${ex.message}`);
+                }
+            }
         }
-        
-        try {
-            return nodes.map(node => new SourceCntDevice(node));
-        }
-        catch (ex) {
-            console.error(ex);
-            return [];
-        }
+        return res;
     }
 }

@@ -5,15 +5,17 @@ const SupPoint = require('./source_sup_point');
 const Addr = require('./source_addr');
 const { CQN_OPCODE_ALL_OPS } = require('oracledb');
 const SourceSupPoint = require('./source_sup_point');
+const BaseMsg = require('../../framework/base_msg');
 
 
 const MSG61_TAB = 'SIO_MSG6_1';
 
-module.exports = class SourceDoc {
+module.exports = class SourceDoc extends BaseMsg {
 
     static col_names = null;
 
     constructor(data) {
+        super(data);
         Adapter.normalize(data, '',
             [
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки',

@@ -35,77 +35,69 @@ module.exports = class MessageHandler extends Consumer {
         log.info('READY')
     }
 
-    async executeEvent(pack) {
-        // log.debug('MessageHandler.onMessage');
-        if(pack.data === null) return;
-
+    async processMsg(msg) {
         try {
-            if (pack.code === 200) {
-                pack.data = JSON.parse(pack.data);
-                const ies_type = pack.data['@type'];
-
-                if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
-                    log.info(`${pack.id} [6.1]`);
-                    await this.onMessage61(pack);
-                } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
-                    log.info(`${pack.id} [13.1]`);
-                    await this.onMessage131(pack);
-                } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
-                    log.info(`${pack.id} [16.1]`);
-                    await this.onMessage161(pack);
-                } else {
-                    pack.error = 'UNKNOWN-TYPE arrived';
-                    log.error(pack.error);
-                    await this.onMessageErr(pack);
-                }
+            if (msg instanceof SourceDoc) {
+                await this.onMsg61(msg);
+            }
+            else if (msg instanceof IndicatDoc) {
+                await this.onMsg131(msg);
+            }
+            else if (msg instanceof VolumeDoc) {
+                await this.onMsg161(msg);
             }
             else {
-                pack.error = 'NON-JSON arrived';
-                await this.onMessageErr(pack);
+                // console.log('UNKNOWN');
             }
         }
         catch (ex) {
-            pack.error = ex.message;
-            await this.onMessageErr(pack);
+            log.error(`${msg.id}\t${ex.message}\tMessageHandler.processMsg()`);
+            throw ex;
         }
     }
 
-    async onMessage61(pack) {
+    // async executeEvent(pack) {
+    //     // log.debug('MessageHandler.onMessage');
+    //     if (pack.data === null) return;
+
+    //     try {
+    //         if (pack.code === 200) {
+    //             pack.data = JSON.parse(pack.data);
+    //             const ies_type = pack.data['@type'];
+
+    //             if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
+    //                 log.info(`${pack.id} [6.1]`);
+    //                 await this.onPack61(pack);
+    //             } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
+    //                 log.info(`${pack.id} [13.1]`);
+    //                 await this.onPack131(pack);
+    //             } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
+    //                 log.info(`${pack.id} [16.1]`);
+    //                 await this.onPack161(pack);
+    //             } else {
+    //                 pack.error = 'UNKNOWN-TYPE arrived';
+    //                 log.error(pack.error);
+    //                 await this.onMessageErr(pack);
+    //             }
+    //         }
+    //         else {
+    //             pack.error = 'NON-JSON arrived';
+    //             await this.onMessageErr(pack);
+    //         }
+    //     }
+    //     catch (ex) {
+    //         pack.error = ex.message;
+    //         await this.onMessageErr(pack);
+    //     }
+    // }
+
+    async onPack61(pack) {
         const msg = pack.data;
         const fname = pack.id ? pack.id : 'NONAME.' + Utils.getTimeLabel() + '.txt';
         try {
             const doc = new SourceDoc(msg);
-
-            const time1 = new Date().getTime();
-            /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
-            const rows_data = doc.getColValues(fname);
-            const columns = SourceDoc.getColNames();
-            const sql = `insert into sio_msg6_1(`
-                + columns.join(', ')
-                + ') values('
-                + columns.map((e, i) => `:${i + 1}`).join(', ')
-                + ')';
-
-            const res = await this.db_helper.insertMany(sql, rows_data);
-
-            if (res.batchErrors) {
-                log.warn(res.batchErrors);
-            }
-
-            const time2 = new Date().getTime();
-            /// ПОИСК ПОЛНЫХ ЦЕПОЧЕК --------------------------------------------
-            // const ans_chains = await this.db_helper.findChains(doc, fname); /// перенесено в БД
-
-            const time3 = new Date().getTime();
-            /// ПОИСК ИЛИ СОЗДАНИЕ ШКАЛ --------------------------------------------
-            // const ans_registers = await this.db_helper.findRegisters(doc);
-
-            const time4 = new Date().getTime();
-            /// ЗАПУСК ОСНОВНОЙ ОБРАБОТКИ  --------------------------------------------
-            const ans_handle = await this.db_helper.handleAbon(doc, fname);
-
-            const end_time = new Date().getTime();
-            console.log(`${fname.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
+            doc.id = fname;
+            await this.onMsg61(doc);
         }
         catch (ex) {
             log.error(ex);
@@ -114,18 +106,67 @@ module.exports = class MessageHandler extends Consumer {
         }
     }
 
-    async onMessage131(pack) {
+    async onMsg61(doc) {
+        const time1 = new Date().getTime();
+        /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
+        const rows_data = doc.getColValues(doc.id);
+        const columns = SourceDoc.getColNames();
+        const sql = `insert into sio_msg6_1(`
+            + columns.join(', ')
+            + ') values('
+            + columns.map((e, i) => `:${i + 1}`).join(', ')
+            + ')';
+
+        const res = await this.db_helper.insertMany(sql, rows_data);
+
+        if (res.batchErrors) {
+            log.warn(res.batchErrors);
+        }
+
+        return;
+
+
+        const time2 = new Date().getTime();
+        /// ПОИСК ПОЛНЫХ ЦЕПОЧЕК --------------------------------------------
+        // const ans_chains = await this.db_helper.findChains(doc, doc.id); /// перенесено в БД
+
+        const time3 = new Date().getTime();
+        /// ПОИСК ИЛИ СОЗДАНИЕ ШКАЛ --------------------------------------------
+        // const ans_registers = await this.db_helper.findRegisters(doc);
+
+        const time4 = new Date().getTime();
+        /// ЗАПУСК ОСНОВНОЙ ОБРАБОТКИ  --------------------------------------------
+        const ans_handle = await this.db_helper.handleFile(doc, doc.id);
+
+        const end_time = new Date().getTime();
+        console.log(`${doc.id.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
+    }
+
+    async onPack131(pack) {
         const msg = pack.data;
-        const doc = IndicatDoc.parse(msg);
+        const doc = new IndicatDoc(msg);
+        doc.id = pack.id;
+        await this.onMsg131(doc);
+    }
+
+    async onMsg131(doc) {
         const answer = await this.db_helper.saveIndicat(doc);
         if (this.save_debug) {
             const codes = '.' + Object.keys(answer).join('.');
-            const fpath = path.join(this.dbg_dir, pack.id + codes + '.txt');
+            const fpath = path.join(this.dbg_dir, doc.id + codes + '.txt');
             await FileHelper.saveObj(fpath, answer);
         }
     }
 
-    async onMessage161(pack) {
+    async onPack161(pack) {
+        log.debug('receive 16.1')
+        const msg = pack.data;
+        const doc = new VolumeDoc(msg);
+
+        await onMsg161(doc);
+    }
+
+    async onMsg161(doc) {
         log.debug('receive 16.1')
         const msg = pack.data;
 
@@ -133,7 +174,6 @@ module.exports = class MessageHandler extends Consumer {
             att_points: [],
         }
 
-        const doc = new VolumeDoc(msg);
         for (const sup_point of doc.nodes) {
             /// отладочная информация
             const sup_info = {

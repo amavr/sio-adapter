@@ -71,7 +71,9 @@ module.exports = class Producer extends EventEmitter {
             }
             catch (ex) {
                 log.error(ex.message);
-                await this.onError(ex.message);
+                pack.code = 400;
+                pack.data = ex.message;
+                await this.onError(pack);
                 break;
             }
         }
@@ -83,12 +85,13 @@ module.exports = class Producer extends EventEmitter {
         await hub.sendEvent(pack);
     }
 
-    async onError(errMsg) {
-        await hub.sendEvent({ id: null, data: errMsg});
+    async onError(pack) {
+
+        await hub.sendEvent(pack);
     }
 
     async onIdle() {
-        await hub.sendEvent({ id: null, data: null });
+        await hub.sendEvent({ id: null, code: 204, data: null });
     }
 
 }

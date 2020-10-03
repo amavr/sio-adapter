@@ -179,7 +179,7 @@ module.exports = class DBHelper {
                     ');' +
                     'end;',
                     {
-                        id_ies_msg_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.id },
+                        id_ies_msg_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.ind_id },
                         id_ies_indicat_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.id },
                         id_ies_ini_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.register_id },
                         readlast_date_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: doc.dt },
@@ -383,7 +383,7 @@ module.exports = class DBHelper {
         return ans;
     }
 
-    async handleAbon(doc) {
+    async handleFile(doc, filename) {
         let res = true;
         const tran_id = Utils.getHash(doc.abon_kodp + new Date().getTime());
         const dbcon = await this.getConnection();
@@ -391,11 +391,10 @@ module.exports = class DBHelper {
 
             await dbcon.execute(
                 'BEGIN ' +
-                'IEG_CONSUMER_MDM.PROCESS_DATA(:flow, :abon_kodp,:block_id,:delete_source); ' +
+                'IEG_CONSUMER_MDM.PROCESS_FILE(:fname,:block_id,:delete_source); ' +
                 'END;',
                 {
-                    flow: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow_type },
-                    abon_kodp: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.abon_kodp },
+                    fname: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: filename },
                     block_id: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: tran_id },
                     delete_source: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: 'Y' },
                 },

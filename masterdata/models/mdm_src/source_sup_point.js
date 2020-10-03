@@ -115,6 +115,18 @@ module.exports = class SourceSupPoint {
 
     /// разбор массива точек поставки
     static parse(nodes) {
-        return nodes.map(node => new SourceSupPoint(node))
+        const res = [];
+        if (nodes) {
+            for (const node of nodes) {
+                try {
+                    res.push(new SourceSupPoint(node));
+                }
+                catch (ex) {
+                    console.warn(`BAD STRUCTURE FOR ATTP POINT WITH @ID = ${node['@id']}`);
+                    console.warn(ex.message);
+                }
+            }
+        }
+        return res;
     }
 }

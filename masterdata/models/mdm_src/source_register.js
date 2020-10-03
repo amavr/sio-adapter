@@ -61,16 +61,18 @@ module.exports = class SourceRegister {
 
     /// разбор массива точек поставки
     static parse(nodes) {
-        if(nodes === undefined){
-            return [];
+        const res = [];
+        if (nodes) {
+            for (const node of nodes) {
+                try {
+                    res.push(new SourceRegister(node));
+                }
+                catch (ex) {
+                    console.warn(`BAD STRUCTURE FOR REGISTER WITH @ID = ${node['@id']}`);
+                    console.warn(ex.message);
+                }
+            }
         }
-        
-        try {
-            return nodes.map(node => new SourceRegister(node))
-        }
-        catch (ex) {
-            console.error(ex);
-            return [];
-        }
+        return res;
     }
 }

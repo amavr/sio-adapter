@@ -1,15 +1,18 @@
 'use strict';
 
 const Result = require('./result');
+const BaseMsg = require('../../framework/base_msg');
 
-module.exports = class Indicat {
+module.exports = class Indicat extends BaseMsg {
 
-    constructor(){
-        this.id = null;
-        this.device_id = null;
-        this.type = null;
-        this.dt = null;
-        this.nodes = [];
+    constructor(data){
+        super(data);
+
+        this.ind_id = data['@id'];
+        this.device_id = data['ПуПоказаний'];
+        this.type = data['ИмеетСпособПолученияПоказаний'];
+        this.dt = new Date(data['ДатаСнятияПоказаний']);
+        this.nodes = Result.parse(data['СнятыеПоказанияРегистра']);
     }
 
     getCounters(){
@@ -25,14 +28,8 @@ module.exports = class Indicat {
         return counters;
     }
 
-    static parse(node) {
-        const ind = new Indicat();
-        ind.id = node['@id'];
-        ind.device_id = node['ПуПоказаний'];
-        ind.type = node['ИмеетСпособПолученияПоказаний'];
-        ind.dt = new Date(node['ДатаСнятияПоказаний']);
-        ind.nodes = Result.parse(node['СнятыеПоказанияРегистра']);
-        return ind;
+    static parse(data) {
+        return new Indicat(data);
     }
 
 }
