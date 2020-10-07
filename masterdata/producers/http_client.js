@@ -1,8 +1,6 @@
 'use strict';
 
 const got = require('got');
-const log = require('log4js').getLogger('cli.http');
-
 const Utils = require('../helpers/utils');
 const Producer = require('../framework/producer');
 
@@ -16,7 +14,7 @@ module.exports = class HttpClient extends Producer {
         super(cfg);
         this.url = cfg.url;
 
-        log.info(`READY ${this.url}`);
+        this.log.info(`READY ${this.url}`);
     }
 
     /**

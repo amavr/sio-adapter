@@ -1,29 +1,28 @@
 {
     "log_dir": "logs",
+    "log_level": "ALL",
     "api": {
         "dbname": "dalpha"
     },
     "producers": {
         "fake_client": {
             "enabled": false,
-            "tag": "FAKE.CLI",
-            "interval": 3000,
+            "tag": "FAKE.PRD",
+            "interval": 1200,
 
-            "delay": 100
+            "delay": 1000
         },
         "file_client": {
-            "enabled": false,
-            "tag": "FILE.CLI",
-            "interval": 2000,
+            "enabled": true,
+            "tag": "FILE.PRD",
+            "interval": 3000,
 
-            "x-watch_dir": "13.1",
-            "x-backup_dir": "13.1.backup",
             "watch_dir": "watch",
             "backup_dir": "watch.backup"
         },
         "http_client": {
             "enabled": true,
-            "tag": "HTTP.CLI",
+            "tag": "HTTP.PRD",
             "interval": 3000,
 
             "url": "http://localhost:3004/api/v1/rnd",
@@ -32,25 +31,32 @@
     },
     "consumers": {
         "test_consumer": {
-            "enabled": false,
+            "enabled": true,
             "parallel": 5,
+            "tag": "FAKE.CSR",
 
             "delay": 2000
         },
         "statistics": {
             "enabled": true,
             "parallel": 20,
+            "tag": "STAT.CSR",
 
             "dbname": "dalpha",
-            "stat_path": "stat/masterdata-stat.json",
             "save_at_second": 20
         },
         "message_handler": {
             "enabled": true,
             "parallel": 20,
+            "tag": "HANDLE.CSR",
 
             "dbname": "dalpha",
-            "save_debug": true,
+            "debug_61": false,
+            "debug_131": false,
+            "debug_161": false,
+            "handle_61": false,
+            "handle_131": false,
+            "handle_161": false,
             "msg_dir": "results/msg",
             "err_dir": "results/err",
             "log_dir": "results/log",

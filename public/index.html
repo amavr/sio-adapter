@@ -4,73 +4,11 @@
 <head>
     <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
-    <script async="false" src="js/ajax.js"></script>
 </head>
 
 <body>
-    <div>SQL Text</div>
-    <textarea id="sour" style="width: 100%;" rows="8">select one, two, three from dual;</textarea>
-    <button id="btn_format">Format</button>
-    <pre id="dest" style="border: solid #bbb 1px; padding: 10px;"></pre>
-
-    <script>
-
-        const Ctrl = function () {
-            const me = this;
-
-            me.query = async function (url, sql) {
-                const data = {};
-                data.sql = sql;
-
-                try {
-                    const answer = await me.ajax.query("/api/v1/sql", {
-                        method: "POST",
-                        body: JSON.stringify(data),
-                        headers: { "content-type": "application/json" }
-                    });
-
-                    return answer;
-                }
-                catch (ex) {
-                    console.log(ex);
-                }
-                return { error: ex };
-
-            }
-
-            this.init = function () {
-                me.ajax = new AJAX();
-                document.querySelector('button#btn_format').addEventListener('click', async function () {
-                    try {
-                        const val = document.querySelector('textarea#sour').value;
-                        const options = {
-                            method: "POST",
-                            body: JSON.stringify({ sql: val }),
-                            headers: { "content-type": "application/json" }
-                        };
-                        const answer = await me.ajax.query("/api/v1/sql", options);
-                        document.querySelector('pre#dest').innerHTML = answer.sql;
-                    }
-                    catch (ex) {
-                        document.querySelector('pre#dest').innerHTML = JSON.stringify(ex);
-                    }
-                });
-            }
-
-            this.constructor = function () {
-                this.init();
-            }
-
-            this.constructor();
-        }
-
-        window.addEventListener('load', function () {
-            console.log('READY');
-            new Ctrl();
-        });
-
-    </script>
-
+    <h1>СИО Адаптер</h1>
+    <p>Служит для обработки входящих сообщений</p>
 </body>
 
 </html>

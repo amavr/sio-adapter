@@ -6,6 +6,7 @@ const Addr = require('./source_addr');
 const { CQN_OPCODE_ALL_OPS } = require('oracledb');
 const SourceSupPoint = require('./source_sup_point');
 const BaseMsg = require('../../framework/base_msg');
+const CONST = require('../../resources/const.json');
 
 
 const MSG61_TAB = 'SIO_MSG6_1';
@@ -69,31 +70,39 @@ module.exports = class SourceDoc extends BaseMsg {
     }
 
     getCounters(){
-        const counters = {
-            abon: 1,
-            dog: 1,
-            obj: 1,
-            attp: 0,
-            point: 0,
-            pu: 0,
-            ini: 0
-        };
+        const counters = {};
+        counters[CONST.RU.abon] = 1;
+        counters[CONST.RU.dog] = 1;
+        counters[CONST.RU.obj] = 1;
+        counters[CONST.RU.attp] = 0;
+        counters[CONST.RU.point] = 0;
+        counters[CONST.RU.pu] = 0;
+        counters[CONST.RU.ini] = 0;
+        // const counters = {
+        //     abon: 1,
+        //     dog: 1,
+        //     obj: 1,
+        //     attp: 0,
+        //     point: 0,
+        //     pu: 0,
+        //     ini: 0
+        // };
 
         /// ТП
         if(this.nodes){
-            counters.attp = this.nodes.length;
+            counters[CONST.RU.attp] = this.nodes.length;
             this.nodes.forEach((attp_node) => {
                 /// ТУ
                 if(attp_node.nodes){
-                    counters.point += attp_node.nodes.length;
+                    counters[CONST.RU.point] += attp_node.nodes.length;
                     attp_node.nodes.forEach((point_node) => {
                         /// ПУ
                         if(point_node.nodes){
-                            counters.pu += point_node.nodes.length;
+                            counters[CONST.RU.pu] += point_node.nodes.length;
                             point_node.nodes.forEach((pu_node) => {
                                 /// Шкалы
                                 if(pu_node.nodes){
-                                    counters.ini += pu_node.nodes.length;
+                                    counters[CONST.RU.ini] += pu_node.nodes.length;
                                 }
                             });
                         }

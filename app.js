@@ -4,21 +4,24 @@ const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
-const fs = require('fs');
+const oracledb = require('oracledb');
 
 const cfg = require('./config');
 
 const log4js = require('log4js');
+const log = log4js.getLogger('app');
+log.level = 'debug';
 
-const oracledb = require('oracledb');
+
 const ofs = 10;
-console.log("".padEnd(32, '='));
-console.log("Platform:".padStart(ofs), process.platform);
-console.log("Version:".padStart(ofs), process.version);
-console.log("Arch:".padStart(ofs), process.arch);
-console.log("OracleDB:".padStart(ofs), oracledb.versionString);
-console.log("Client:".padStart(ofs), oracledb.oracleClientVersionString);
-console.log("".padEnd(32, '='));
+log.info("".padEnd(32, '='));
+log.info("NODE_ENV:".padStart(ofs) + process.env.NODE_ENV);
+log.info("Platform:".padStart(ofs) + process.platform);
+log.info("Version:".padStart(ofs) + process.version);
+log.info("Arch:".padStart(ofs) + process.arch);
+log.info("OracleDB:".padStart(ofs) + oracledb.versionString);
+log.info("Client:".padStart(ofs) + oracledb.oracleClientVersionString);
+log.info("".padEnd(32, '='));
 
 
 
@@ -33,8 +36,6 @@ const app = express();
 app.set('views', path.join(__dirname, 'views'));
 
 
-const log = log4js.getLogger('app');
-log.level = 'debug';
 // log.info('SERVER STARTING');
 
 // app.use(log4js.connectLogger(log, { 

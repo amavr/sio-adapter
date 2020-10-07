@@ -1,6 +1,5 @@
 'use strict';
 
-const log = require('log4js').getLogger('cli.file');
 const path = require('path');
 
 const FileHelper = require('../helpers/file_helper');
@@ -12,7 +11,7 @@ module.exports = class FileClient extends Producer {
         super(cfg);
         this.watch_dir = path.join(cfg.work_dir, cfg.watch_dir);
         this.backup_dir = path.join(cfg.work_dir, cfg.backup_dir);
-        log.info(`READY on (${this.watch_dir})`);
+        this.info(`READY ${this.watch_dir}`);
 
         this.buffer = [];
     }
@@ -33,7 +32,7 @@ module.exports = class FileClient extends Producer {
             }
         }
         catch(ex){
-            log.error(ex.message);
+            this.error(ex.message);
         }
     }
 

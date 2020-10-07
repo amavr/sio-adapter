@@ -2,7 +2,7 @@
 
 const EventEmitter = require('events');
 const Utils = require('../helpers/utils');
-const log = require('log4js').getLogger('producer');
+const log4js = require('log4js');
 
 const CONST = require('../resources/const.json');
 const hub = require('./event_hub');
@@ -14,10 +14,10 @@ module.exports = class Producer extends EventEmitter {
         super();
 
         this.interval = cfg.interval;
-        this.tag = cfg.tag;
         this.enabled = cfg.enabled;
-
         this.timer = null;
+
+        this.log = log4js.getLogger(cfg.tag ? cfg.tag : 'producer');
     }
 
     /**
@@ -52,7 +52,7 @@ module.exports = class Producer extends EventEmitter {
 
             const pack = await context.handle();
             if (pack === null) {
-                log.debug('IDLE');
+                context.log.debug('IDLE');
                 await context.onIdle();
                 break;
             }
@@ -70,7 +70,7 @@ module.exports = class Producer extends EventEmitter {
                 // log.debug('send data');
             }
             catch (ex) {
-                log.error(ex.message);
+                context.log.error(ex.message);
                 pack.code = 400;
                 pack.data = ex.message;
                 await context.onError(pack);
@@ -91,6 +91,22 @@ module.exports = class Producer extends EventEmitter {
 
     async onIdle() {
         await hub.sendEvent({ id: null, code: 204, data: null });
+    }
+
+    info(msg){
+        this.log.info(msg);
+    }
+
+    warn(msg){
+        this.log.warn(msg);
+    }
+
+    error(msg){
+        this.log.error(msg);
+    }
+
+    debug(msg){
+        this.log.debug(msg);
     }
 
 }

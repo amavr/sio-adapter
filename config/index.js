@@ -6,7 +6,7 @@ const cfg = process.env.NODE_ENV === 'production' ? require('./production.json')
 if (process.env.NODE_ENV === 'production') {
     const home_dir = require('os').homedir();
     const root_dir = path.join(home_dir, '../../');
-    const otp_dir = path.join(root_dir, '/otp');
+    const otp_dir = path.join(root_dir, '/opt');
     const otp_app_dir = path.join(otp_dir, '/lenenergo.psk.integration');
     cfg.work_dir = path.join(otp_app_dir, '/IN');
 } else {
@@ -37,7 +37,7 @@ log4js.configure({
         console: { type: 'console' }
     },
     categories: {
-        default: { appenders: ['app', 'console'], level: 'debug' }
+        default: { appenders: ['app', 'console'], level: cfg.log_level }
     }
 });
 

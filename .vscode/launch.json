@@ -19,7 +19,7 @@
                 "xDEBUG": null
             },
             "outputCapture": "std",
-            "program": "${workspaceFolder}\\bin\\www"
+            "program": "${workspaceFolder}\\bin\\in_json_process"
         }
     ]
 }

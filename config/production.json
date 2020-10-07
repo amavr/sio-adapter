@@ -1,51 +1,65 @@
 {
     "log_dir": "logs",
+    "log_level": "DEBUG",
     "api": {
         "dbname": "dalpha"
     },
     "producers": {
+        "fake_client": {
+            "enabled": false,
+            "tag": "FAKE.PRD",
+            "interval": 3000,
+
+            "delay": 100
+        },
         "file_client": {
-            "enabled": true,
-            "tag": "FILE.CLI",
-            "watch_dir": "out_message13_1_BYT_MAY_111.files",
-            "backup_dir": "source/out_message13_1_BYT_MAY_111.files",
-            "x-watch_dir": "D:/IE/files/buf/watch",
-            "x-backup_dir": "D:/IE/files/buf/results",
-            "interval": 2000
+            "enabled": false,
+            "tag": "FILE.PRD",
+            "interval": 2000,
+
+            "watch_dir": "watch",
+            "backup_dir": "watch.backup"
         },
         "http_client": {
-            "enabled": false,
-            "tag": "HTTP.CLI",
-            "url": "http://localhost:3040/next",
-            "xurl": "http://localhost:3040/next",
-            "interval": 3000
+            "enabled": true,
+            "tag": "HTTP.PRD",
+            "interval": 3000,
+            "url": "http://172.25.144.188:3040/next"
         }
     },
     "consumers": {
+        "test_consumer": {
+            "enabled": false,
+            "parallel": 5,
+            "tag": "FAKE.CSR",
+
+            "delay": 2000
+        },
         "statistics": {
-            "dbname": "dalpha",
             "enabled": true,
-            "stat_path": "stat/masterdata-stat.json",
-            "interval": 10000,
-            "parallel": 100
+            "parallel": 20,
+            "tag": "STAT.CSR",
+
+            "dbname": "dalpha",
+            "save_at_second": 20
         },
         "message_handler": {
-            "dbname": "dalpha",
             "enabled": true,
-            "parallel": 10,
-            "save_debug": true,
-            "msg_dir": "msg",
-            "err_dir": "err",
-            "log_dir": "log",
-            "dbg_dir": "dbg"
-        },
-        "message_recorder": {
-            "enabled": false,
-            "interval": 10000,
-            "parallel": 100
+            "parallel": 20,
+            "tag": "HANDLE.CSR",
+
+            "dbname": "dalpha",
+            "debug_61": false,
+            "debug_131": false,
+            "debug_161": false,
+            "handle_61": false,
+            "handle_131": false,
+            "handle_161": false,
+            "msg_dir": "results/msg",
+            "err_dir": "results/err",
+            "log_dir": "results/log",
+            "dbg_dir": "results/dbg"
         }
-    },
-    "production": {
     },
     "databases": {
         "devalpha": {
@@ -101,8 +115,8 @@
                     "  )"
                 ],
                 "poolMin": 2,
-                "poolMax": 2,
-                "poolIncrement": 0
+                "poolMax": 20,
+                "poolIncrement": 2
             }
         }
     }

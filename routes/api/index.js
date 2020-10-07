@@ -24,7 +24,17 @@ const dirs = ['out_message6_1_BYT_MAY_126.files', 'out_message13_1_BYT_MAY_111.f
 
 const router = express.Router();
 
+router.get('/v1/alive', async (req, res) => {
+    res.json({ msg: 'I`m alive' });
+    return;
+});
+
 router.get('/v1/rnd', async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+        res.json({ msg: 'I`m alive' });
+        return;
+    }
+
     const rnd = Math.random() * 100;
     if (rnd < 1) {
         res.status(204).end();
@@ -40,6 +50,11 @@ router.get('/v1/rnd', async (req, res) => {
 });
 
 router.get('/v1/msg', async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+        res.json({ msg: 'I`m alive' });
+        return;
+    }
+
     const dir = 'C:/temp/data/test';
 
     const n = Math.floor(Math.random() * 11);

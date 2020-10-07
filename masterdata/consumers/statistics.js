@@ -1,7 +1,6 @@
 'use strict';
 
 const path = require('path');
-const log = require('log4js').getLogger('handler.stat');
 const moment = require('moment');
 
 const Consumer = require('../framework/consumer');
@@ -33,7 +32,7 @@ module.exports = class Statistics extends Consumer {
 
         // this.saveAt(this, this.calcTimeout(this));
 
-        log.info('READY');
+        this.log.info('READY');
     }
 
     async saveStartEvent() {
@@ -94,13 +93,13 @@ module.exports = class Statistics extends Consumer {
         try {
             const res = await context.db_helper.saveCounters(context.counters);
             if (res.batchErrors) {
-                log.warn(res.batchErrors);
+                context.log.warn(res.batchErrors);
             }
             /// сброс счетчиков
             context.counters = {};
         }
         catch (ex) {
-            log.error(ex.message);
+            context.log.error(ex.message);
         }
         context.saveAt(context, context.calcTimeout(context));
     }

@@ -1,16 +1,14 @@
 'use strict';
 
-const log = require('log4js').getLogger('cli.fake');
-
 const Utils = require('../helpers/utils');
 const Producer = require('../framework/producer');
 
 module.exports = class FakeClient extends Producer {
 
-    constructor(cfg/*, msgFactory*/) {
-        super(cfg/*, msgFactory*/);
+    constructor(cfg) {
+        super(cfg);
         this.delay = cfg.delay;
-        log.info(`READY with delay = ${this.delay} msec`);
+        this.info(`READY with delay = ${this.delay} msec`);
     }
 
     async handle() {

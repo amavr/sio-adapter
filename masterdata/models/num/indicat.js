@@ -2,6 +2,7 @@
 
 const Result = require('./result');
 const BaseMsg = require('../../framework/base_msg');
+const CONST = require('../../resources/const.json');
 
 module.exports = class Indicat extends BaseMsg {
 
@@ -17,13 +18,17 @@ module.exports = class Indicat extends BaseMsg {
     }
 
     getCounters(){
-        const counters = {
-            ind: 1,
-            ini: 0
-        };
+        const counters = {}
+        counters[CONST.RU.msg] = 1;
+        counters[CONST.RU.ind] = 0;
+
+        // const counters = {
+        //     msg: 1,
+        //     ind: 0
+        // };
 
         if(this.nodes){
-            counters.ini = this.nodes.length;
+            counters[CONST.RU.ini] = this.nodes.length;
         }
 
         return counters;

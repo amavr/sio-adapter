@@ -3,6 +3,7 @@
 const VolumeSupPoint = require("./vol_sup");
 const Utils = require('../../helpers/utils');
 const BaseMsg = require('../../framework/base_msg');
+const CONST = require('../../resources/const.json');
 
 module.exports = class VolumeDoc extends BaseMsg {
 
@@ -17,16 +18,21 @@ module.exports = class VolumeDoc extends BaseMsg {
     }
 
     getCounters(){
-        const counters = {
-            attp: 0,
-            point: 0
-        };
+        const counters = {}
+        counters[CONST.RU.msg] = 1;
+        counters[CONST.RU.attp] = 0;
+        counters[CONST.RU.point] = 0;
+        // const counters = {
+        //     msg: 1,
+        //     attp: 0,
+        //     point: 0
+        // };
 
         if(this.nodes){
-            counters.attp += this.nodes.length;
+            counters[CONST.RU.attp] += this.nodes.length;
             this.nodes.forEach((attp_point) => {
                 if(attp_point.nodes){
-                    counters.point += attp_point.nodes.length;
+                    counters[CONST.RU.point] += attp_point.nodes.length;
                 }
             });
         }
