@@ -10,7 +10,7 @@ module.exports = class FileClient extends Producer {
     constructor(cfg) {
         super(cfg);
         this.watch_dir = path.join(cfg.work_dir, cfg.watch_dir);
-        this.backup_dir = path.join(cfg.work_dir, cfg.backup_dir);
+        this.backup_dir = cfg.backup_dir ? path.join(cfg.work_dir, cfg.backup_dir) : null;
         this.info(`READY ${this.watch_dir}`);
 
         this.buffer = [];
@@ -25,9 +25,14 @@ module.exports = class FileClient extends Producer {
             }
             else {
                 const sour_path = path.join(this.watch_dir, fname);
-                const dest_path = path.join(this.backup_dir, fname);
                 const txt = await FileHelper.read(sour_path);
-                FileHelper.moveFileSync(sour_path, dest_path);
+                if(this.backup_dir){
+                    const dest_path = path.join(this.backup_dir, fname);
+                    await FileHelper.moveFile(sour_path, dest_path);
+                }
+                else{
+                    await FileHelper.deleteFile(sour_path);
+                }
                 return { id: fname, code: 200, data: txt };
             }
         }

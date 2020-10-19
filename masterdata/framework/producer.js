@@ -71,6 +71,7 @@ module.exports = class Producer extends EventEmitter {
             }
             catch (ex) {
                 context.log.error(ex.message);
+                if(pack === undefined) break;
                 pack.code = 400;
                 pack.data = ex.message;
                 await context.onError(pack);

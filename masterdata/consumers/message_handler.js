@@ -4,7 +4,7 @@ const path = require('path');
 
 const CONST = require('../resources/const.json');
 const DBHelper = require('../helpers/db_helper');
-const Utils = require('../helpers/utils');
+const OraAdapter = require('../adapters/oracle/ora-adp');
 
 const SourceDoc = require('../models/mdm_src/source_doc');
 const IndicatDoc = require('../models/num/indicat');
@@ -31,12 +31,14 @@ module.exports = class MessageHandler extends Consumer {
         this.handle_161 = cfg.handle_161
 
         this.db_helper = new DBHelper(cfg.db);
+        this.adapter = new OraAdapter();
     }
 
     async init() {
         super.init();
         await this.db_helper.init();
         await this.db_helper.execSql('select 1 from dual');
+        this.adapter.init(this.db_helper.pool);
         this.log.info('READY')
     }
 
@@ -66,7 +68,7 @@ module.exports = class MessageHandler extends Consumer {
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
         const columns = SourceDoc.getColNames();
-        const sql = `insert into sio_msg6_1(`
+        const sql = `insert into sio_61(`
             + columns.join(', ')
             + ') values('
             + columns.map((e, i) => `:${i + 1}`).join(', ')
@@ -79,6 +81,8 @@ module.exports = class MessageHandler extends Consumer {
         }
 
         if (this.handle_61) {
+
+            await this.adapter.handle61(doc);
 
             const time2 = new Date().getTime();
             /// ПОИСК ПОЛНЫХ ЦЕПОЧЕК --------------------------------------------

@@ -18,10 +18,10 @@
             "interval": 3000,
 
             "watch_dir": "watch",
-            "backup_dir": "watch.backup"
+            "backup_dir": null
         },
         "http_client": {
-            "enabled": true,
+            "enabled": false,
             "tag": "HTTP.PRD",
             "interval": 3000,
 
@@ -31,14 +31,14 @@
     },
     "consumers": {
         "test_consumer": {
-            "enabled": true,
+            "enabled": false,
             "parallel": 5,
             "tag": "FAKE.CSR",
 
             "delay": 2000
         },
         "statistics": {
-            "enabled": true,
+            "enabled": false,
             "parallel": 20,
             "tag": "STAT.CSR",
 

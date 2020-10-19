@@ -105,6 +105,14 @@ class FileHelper {
         fs.writeFileSync(filePath, val);
     }
 
+    static async deleteFile(filePath){
+        await fsp.unlink(filePath);
+    }
+
+    static async moveFile(sour, dest) {
+        await fsp.rename(sour, dest);
+    }
+
     static moveFileSync(sour, dest, onError) {
         FileHelper.checkDir(dest);
         fs.rename(sour, dest, err => {
