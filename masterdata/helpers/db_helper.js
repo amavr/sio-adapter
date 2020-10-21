@@ -42,7 +42,7 @@ module.exports = class DBHelper {
         await this.pool.rollback();
     }
 
-    async execSql(sql, autoCommit) {
+    async execSql(sql, binds, autoCommit) {
         const res = {
             success: false,
             error: null,
@@ -52,7 +52,7 @@ module.exports = class DBHelper {
         const dbcon = await this.getConnection();
         try {
             const do_commit = autoCommit === undefined ? true : autoCommit;
-            const result = await dbcon.execute(sql, [], { autoCommit: do_commit ? true : false, outFormat: oracledb.OBJECT });
+            const result = await dbcon.execute(sql, binds ? binds : [], { autoCommit: do_commit ? true : false, outFormat: oracledb.OBJECT });
             res.data = result.rows;
             res.success = true;
         } catch (ex) {
@@ -63,19 +63,19 @@ module.exports = class DBHelper {
         return res;
     }
 
-    async saveCounters(counters){
+    async saveCounters(counters) {
         const sql = 'insert into sio_counters_log(tag, code, value) values(:1, :2, :3)';
         const rows = [];
-        for(const tag of Object.keys(counters)){
+        for (const tag of Object.keys(counters)) {
             const tag_counters = counters[tag];
-            for(const key of Object.keys(tag_counters)){
+            for (const key of Object.keys(tag_counters)) {
                 rows.push([tag, key, tag_counters[key]]);
             }
         }
-        if(rows.length > 0){
+        if (rows.length > 0) {
             return await this.insertMany(sql, rows);
         }
-        else{
+        else {
             return {};
         }
     }
@@ -121,39 +121,43 @@ module.exports = class DBHelper {
         return res;
     }
 
-    static getTypeName(typeId){
-        if(typeId === oracledb.STRING){
+    static getTypeName(typeId) {
+        if (typeId === oracledb.STRING) {
             return 'VARCHAR2';
         }
-        else if(typeId === oracledb.NUMBER){
+        else if (typeId === oracledb.NUMBER) {
             return 'NUMBER';
         }
-        else if(typeId === oracledb.DATE){
+        else if (typeId === oracledb.DATE) {
             return 'DATE';
         }
-        else{
+        else {
             return "-";
         }
     }
 
-    static getProcCall(sql, binds){
-        let script = sql;
-        let vars = [];
-        for(var key in binds){
-            if(binds[key].dir === oracledb.BIND_OUT) {
-                vars.push(`\t${key} ${DBHelper.getTypeName(binds[key].type)};`);
-            }
-            const val = binds[key].dir === oracledb.BIND_OUT 
-                ? `${key} => ${key}`
-                : binds[key].type === oracledb.STRING 
-                    ? `${key} => '${binds[key].val}'`
-                    : `${key} => ${binds[key].val}`;
-            script = script.replace(':' + key, val)
+    async callProc(procName, binds) {
+        const answer = {
+            // {'<code>': [{id: '', ret_msg: ''}]}
+        };
+
+        const params = [];
+        for (const key of Object.keys(binds)) {
+            params.push(`${key} => :${key}`);
         }
-        if(vars.length > 0){
-            script = 'declare\r\n' + vars.join('\r\n') + script;
+        const sql = `begin ${procName}(${params.join()}); end;`;
+        const dbcon = await this.getConnection();
+        try {
+            const res = await dbcon.execute(sql, binds, { resultSet: false, autoCommit: false });
+            await dbcon.commit();
+            answer.data = res;
         }
-        return script;
+        catch (ex) {
+            answer.error = ex.message;
+            // console.error(ex);
+            await dbcon.rollback();
+        }
+        return answer;
     }
 
     async saveIndicat(doc) {
@@ -185,7 +189,7 @@ module.exports = class DBHelper {
                         id_ies_msg_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.ind_id },
                         id_ies_indicat_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.id },
                         id_ies_ini_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.register_id },
-                        readlast_date_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: doc.dt },
+                        readlast_date_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: node.dt },
                         readlast_val_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: node.value },
                         id_ies_poktype_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.type },
                         result_code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },

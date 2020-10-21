@@ -1,9 +1,9 @@
 'use strict';
 
 const Adapter = require('../../helpers/adapter');
-const Register = require('./source_register');
+const Register = require('./mdm_register');
 
-module.exports = class SourceCntDevice {
+module.exports = class MdmCntDevice {
 
     constructor(node) {
         this.pu_kod_point_pu = Adapter.getVal(node, '@id');
@@ -20,7 +20,7 @@ module.exports = class SourceCntDevice {
 
     static getColNames() {
         return [
-            ...SourceCntDevice.getSelfColNames(),
+            ...MdmCntDevice.getSelfColNames(),
             ...Register.getColNames()
         ]
     }
@@ -85,7 +85,7 @@ module.exports = class SourceCntDevice {
         if (nodes) {
             for (const node of nodes) {
                 try {
-                    res.push(new SourceCntDevice(node));
+                    res.push(new MdmCntDevice(node));
                 }
                 catch (ex) {
                     console.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${node['@id']}`);

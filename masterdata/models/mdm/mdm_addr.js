@@ -2,7 +2,7 @@
 
 const Adapter = require('../../helpers/adapter');
 
-module.exports = class SourceAddress {
+module.exports = class MdmAddress {
 
     constructor(node) {
         this.str = Adapter.getVal(node, 'АдресПолныйСтрокой');
@@ -71,7 +71,7 @@ module.exports = class SourceAddress {
 
     /// разбор массива точек поставки
     static parse(node) {
-        return new SourceAddress(node);
+        return new MdmAddress(node);
     }
 
 

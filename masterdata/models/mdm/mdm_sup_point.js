@@ -1,14 +1,14 @@
 'use strict';
 
 const Adapter = require('../../helpers/adapter');
-const CntPoint = require('./source_cnt_point');
+const CntPoint = require('./mdm_cnt_point');
 
 const ATTP_PWC = 'http://trinidata.ru/sigma/РольЦентрПитания';
 const ATTP_SRC = 'http://trinidata.ru/sigma/РольИсточникПитания';
 const ATTP_SRCFDR = 'http://trinidata.ru/sigma/РольФидер';
 
 
-module.exports = class SourceSupPoint {
+module.exports = class MdmSupPoint {
 
     constructor(node) {
         this.attp_kod_attpoint = node['@id'];
@@ -36,7 +36,7 @@ module.exports = class SourceSupPoint {
 
     static getColNames() {
         return [
-            ...SourceSupPoint.getSelfColNames(),
+            ...MdmSupPoint.getSelfColNames(),
             ...CntPoint.getColNames()
         ]
     }
@@ -119,7 +119,7 @@ module.exports = class SourceSupPoint {
         if (nodes) {
             for (const node of nodes) {
                 try {
-                    res.push(new SourceSupPoint(node));
+                    res.push(new MdmSupPoint(node));
                 }
                 catch (ex) {
                     console.warn(`BAD STRUCTURE FOR ATTP POINT WITH @ID = ${node['@id']}`);

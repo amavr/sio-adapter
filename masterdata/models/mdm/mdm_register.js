@@ -2,7 +2,7 @@
 
 const Adapter = require('../../helpers/adapter');
 
-module.exports = class SourceRegister {
+module.exports = class MdmRegister {
 
     constructor(node) {
         // this.ini_kod_point_ini = Adapter.getVal('@id');
@@ -23,7 +23,7 @@ module.exports = class SourceRegister {
     }
 
     static getColNames() {
-        return SourceRegister.getSelfColNames();
+        return MdmRegister.getSelfColNames();
     }
 
     static getEmpty(owner_data){
@@ -65,7 +65,7 @@ module.exports = class SourceRegister {
         if (nodes) {
             for (const node of nodes) {
                 try {
-                    res.push(new SourceRegister(node));
+                    res.push(new MdmRegister(node));
                 }
                 catch (ex) {
                     console.warn(`BAD STRUCTURE FOR REGISTER WITH @ID = ${node['@id']}`);

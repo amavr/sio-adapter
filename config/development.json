@@ -18,7 +18,7 @@
             "interval": 3000,
 
             "watch_dir": "watch",
-            "backup_dir": null
+            "backup_dir": "watch.backup"
         },
         "http_client": {
             "enabled": false,

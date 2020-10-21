@@ -1,17 +1,21 @@
 'use strict';
 
 const path = require('path');
+const oracledb = require('oracledb');
 
 const CONST = require('../resources/const.json');
 const DBHelper = require('../helpers/db_helper');
+const SqlHolder = require('../helpers/sql_holder');
 const OraAdapter = require('../adapters/oracle/ora-adp');
 
-const SourceDoc = require('../models/mdm_src/source_doc');
-const IndicatDoc = require('../models/num/indicat');
+const MdmDoc = require('../models/mdm/mdm_doc');
+const IndicatDoc = require('../models/indicates/ind_doc');
 const VolumeDoc = require('../models/volumes/vol_doc');
+const CfgDoc = require('../models/mdm_cfg/cfg_doc');
 
 const Consumer = require('../framework/consumer');
 const FileHelper = require('../helpers/file_helper');
+const DBRefs = require('../helpers/db_refs');
 
 module.exports = class MessageHandler extends Consumer {
 
@@ -32,19 +36,21 @@ module.exports = class MessageHandler extends Consumer {
 
         this.db_helper = new DBHelper(cfg.db);
         this.adapter = new OraAdapter();
+        this.db_refs = new DBRefs();
     }
 
     async init() {
         super.init();
         await this.db_helper.init();
-        await this.db_helper.execSql('select 1 from dual');
+        await this.db_refs.init(this.db_helper);
+        // await this.db_helper.execSql('select 1 from dual');
         this.adapter.init(this.db_helper.pool);
         this.log.info('READY')
     }
 
     async processMsg(msg) {
         try {
-            if (msg instanceof SourceDoc) {
+            if (msg instanceof MdmDoc) {
                 await this.onMsg61(msg);
             }
             else if (msg instanceof IndicatDoc) {
@@ -52,6 +58,14 @@ module.exports = class MessageHandler extends Consumer {
             }
             else if (msg instanceof VolumeDoc) {
                 await this.onMsg161(msg);
+            }
+            else if (msg instanceof CfgDoc) {
+                if (msg.tag === '5.1') {
+                    await this.onMsg51(msg);
+                }
+                else if (msg.tag === '5.5') {
+
+                }
             }
             else {
                 // console.log('UNKNOWN');
@@ -67,7 +81,7 @@ module.exports = class MessageHandler extends Consumer {
         const time1 = new Date().getTime();
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
-        const columns = SourceDoc.getColNames();
+        const columns = MdmDoc.getColNames();
         const sql = `insert into sio_61(`
             + columns.join(', ')
             + ') values('
@@ -211,6 +225,87 @@ module.exports = class MessageHandler extends Consumer {
                     await FileHelper.saveObj(fpath, result);
                 }
             }
+        }
+    }
+
+    async onMsg51(doc) {
+
+        // const xbinds = {
+        //     x: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 10 },
+        //     y: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 20 },
+        //     a: { type: oracledb.STRING, dir: oracledb.BIND_INOUT, val: 'www' },
+        //     dt: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: new Date() },
+        //     res: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: null },
+        // }
+        // const xanswer = await this.db_helper.callProc('DBG_TOOLS.test', xbinds);
+        // this.debug(xanswer);
+        // return;
+
+        const beg_dt = new Date();
+        const sql = SqlHolder.get('pu_get_point_info');
+        const binds = { PNT_KOD_POINT: doc.pnt_kod_point };
+        let answer = await this.db_helper.execSql(sql, binds);
+        const end_dt = new Date();
+        console.log(`5.1 TIME: ${end_dt - beg_dt} msec`);
+
+        if (answer.data.length === 0) {
+            log.error(`Point for 5.1 not found. Message @id = "${doc.id}"`);
+            return;
+        }
+        doc.flow = answer.data[0].FLOW_TYPE;
+        doc.point_id = answer.data[0].KOD_POINT;
+        doc.numobj_id = answer.data[0].KOD_NUMOBJ;
+        doc.pu_id = null;
+
+        for (const pu of doc.nodes) {
+
+            if(pu.registers.length === 0) continue;
+            const before_dot = pu.registers[0].ini_razr;
+            const after_dot = pu.registers[0].ini_razr2;
+
+            let res_code = 0;
+            let res_data = '';
+
+            const binds = {
+                kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: doc.pu_id },
+                kod_point_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.point_id },
+                kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
+                num_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: pu.num },
+                // type_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 16583 },
+                // model_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: null },
+                god_vip_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.issue_year },
+                dat_pp_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: pu.dt_check },
+                mpi_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.mpi },
+                ini_razr_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: before_dot },
+                ini_razr2_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: after_dot },
+                dat_s_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: pu.dt_install },
+                dat_po_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: null },
+                flow_type_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
+                st_: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: res_code },
+                errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
+            }
+
+            // const binds = {
+            //     kod_point_pu_: doc.pu_id,
+            //     kod_point_: doc.point_id,
+            //     kod_numobj_: doc.numobj_id,
+            //     num_: pu.num,
+            //     type_: 16583,
+            //     model_: null,
+            //     god_vip_: pu.issue_year,
+            //     dat_pp_: pu.dt_check,
+            //     mpi_: pu.mpi,
+            //     ini_razr_: before_dot,
+            //     ini_razr2_: after_dot,
+            //     dat_s_: pu.dt_install,
+            //     dat_po_: null,
+            //     flow_type_: doc.flow,
+            //     st_: res_code,
+            //     errM_: res_data
+            // };
+
+            answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', binds);
+            this.debug(answer);
         }
     }
 

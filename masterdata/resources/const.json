@@ -11,6 +11,7 @@
         "TYPE_MDM": "http://trinidata.ru/sigma/ОбъектЭнергоснабжения",
         "TYPE_VOL": "http://trinidata.ru/sigma/ПередачаОбъемов",
         "TYPE_IND": "http://trinidata.ru/sigma/Показания",
+        "TYPE_CFG": "http://trinidata.ru/sigma/КонфигурацияИзмерительногоКомплекса",
         "NO_TYPE": "-"
     },
     "LOSSES": {

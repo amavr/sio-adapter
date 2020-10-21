@@ -22,9 +22,10 @@ const FakeClient = require('./producers/fake_client');
 // const MessageRecorder = require('./consumers/message_recorder');
 
 const BaseMsg = require('./framework/base_msg');
-const SourceDoc = require('./models/mdm_src/source_doc');
-const IndicatDoc = require('./models/num/indicat');
+const MdmDoc = require('./models/mdm/mdm_doc');
+const IndDoc = require('./models/indicates/ind_doc');
 const VolumeDoc = require('./models/volumes/vol_doc');
+const CfgDoc = require('./models/mdm_cfg/cfg_doc');
 
 
 module.exports = class Worker extends EventEmitter {
@@ -89,20 +90,22 @@ module.exports = class Worker extends EventEmitter {
                         pack.data = ex.message;
                     }
 
+                    let msg = null;
                     if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
-                        log.info(`${pack.id} [6.1]`);
-                        return new SourceDoc(jobj);
+                        msg = new MdmDoc(jobj);
                     } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
-                        log.info(`${pack.id} [13.1]`);
-                        return new IndicatDoc(jobj);
+                        msg = new IndDoc(jobj);
                     } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
-                        log.info(`${pack.id} [16.1]`);
-                        return new VolumeDoc(jobj);
+                        msg = new VolumeDoc(jobj);
+                    } else if (ies_type === CONST.MSG_TYPES.TYPE_CFG) {
+                        msg = new CfgDoc(jobj);
                     } else {
-                        const msg = Worker.makeErrorMsg(pack, 'UNKNOWN-TYPE');
+                        msg = Worker.makeErrorMsg(pack, 'UNKNOWN-TYPE');
                         log.error(`${msg.id}\t${msg.error}`);
                         return msg;
                     }
+                    log.info(`${pack.id} [${msg.tag}]`);
+                    return msg;
                 }
                 catch(ex){
                     log.error(`${pack.id}\t${ex.message}\t${ies_type}\tindex.buildMessage()`);

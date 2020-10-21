@@ -1,17 +1,16 @@
 'use strict';
 
 const Adapter = require('../../helpers/adapter');
-const SupPoint = require('./source_sup_point');
-const Addr = require('./source_addr');
-const { CQN_OPCODE_ALL_OPS } = require('oracledb');
-const SourceSupPoint = require('./source_sup_point');
+const SupPoint = require('./mdm_sup_point');
+const Addr = require('./mdm_addr');
+const MdmSupPoint = require('./mdm_sup_point');
 const BaseMsg = require('../../framework/base_msg');
 const CONST = require('../../resources/const.json');
 
 
 const MSG61_TAB = 'SIO_MSG6_1';
 
-module.exports = class SourceDoc extends BaseMsg {
+module.exports = class MdmDoc extends BaseMsg {
 
     static col_names = null;
 
@@ -138,16 +137,16 @@ module.exports = class SourceDoc extends BaseMsg {
      * Получить все наименования столбцов: свои столбцы + столбцы инкапсулированных классов
      */
     static getColNames() {
-        if (SourceDoc.col_names === null) {
-            SourceDoc.col_names = [
-                ...SourceDoc.getSelfColNames(),
+        if (MdmDoc.col_names === null) {
+            MdmDoc.col_names = [
+                ...MdmDoc.getSelfColNames(),
                 ...Addr.getColNames('abon_adrr'),
                 ...Addr.getColNames('abon_adrf'),
                 ...Addr.getColNames('nobj_adr'),
-                ...SourceSupPoint.getColNames()
+                ...MdmSupPoint.getColNames()
             ]
         }
-        return SourceDoc.col_names;
+        return MdmDoc.col_names;
     }
 
     static getSelfColNames() {
