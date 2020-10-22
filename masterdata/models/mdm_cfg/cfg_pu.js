@@ -27,6 +27,23 @@ module.exports = class CfgPu {
         this.indicates_dt = Adapter.getVal(data, `${ind_route}/ДатаСнятияПоказаний`);
         const ind_data = Adapter.getVal(data, `${ind_route}/СнятыеПоказанияРегистра`);
         this.indictates = IndRes.parse(ind_data);
+
+        this.linkIndicates();
+    }
+
+    linkIndicates(){
+        /// чтобы не искать несколькими проходами
+        const dic = {};
+        for(const reg of this.registers){
+            dic[reg.ini_kod_point_ini] = reg;
+        }
+
+        /// установка показаний у шкалы 
+        for(const ind of this.indictates){
+            if(dic[ind.register_id]){
+                dic[ind.register_id].ind = ind;
+            }
+        }
     }
 
     static parse(nodes) {

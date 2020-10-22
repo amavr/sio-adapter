@@ -64,7 +64,7 @@ module.exports = class MessageHandler extends Consumer {
                     await this.onMsg51(msg);
                 }
                 else if (msg.tag === '5.5') {
-
+                    await this.onMsg55(msg);
                 }
             }
             else {
@@ -229,45 +229,31 @@ module.exports = class MessageHandler extends Consumer {
     }
 
     async onMsg51(doc) {
-
-        // const xbinds = {
-        //     x: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 10 },
-        //     y: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 20 },
-        //     a: { type: oracledb.STRING, dir: oracledb.BIND_INOUT, val: 'www' },
-        //     dt: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: new Date() },
-        //     res: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: null },
-        // }
-        // const xanswer = await this.db_helper.callProc('DBG_TOOLS.test', xbinds);
-        // this.debug(xanswer);
-        // return;
+        const result = {
+            errors: [],
+            proc_calls: 0
+        }
 
         const beg_dt = new Date();
-        const sql = SqlHolder.get('pu_get_point_info');
-        const binds = { PNT_KOD_POINT: doc.pnt_kod_point };
-        let answer = await this.db_helper.execSql(sql, binds);
-        const end_dt = new Date();
-        console.log(`5.1 TIME: ${end_dt - beg_dt} msec`);
 
-        if (answer.data.length === 0) {
-            log.error(`Point for 5.1 not found. Message @id = "${doc.id}"`);
+        if (await this.setSysKeysMsg5(doc) === false) {
             return;
         }
-        doc.flow = answer.data[0].FLOW_TYPE;
-        doc.point_id = answer.data[0].KOD_POINT;
-        doc.numobj_id = answer.data[0].KOD_NUMOBJ;
-        doc.pu_id = null;
+
+        let res_code = 0;
+        let res_data = '';
+        let answer = null;
 
         for (const pu of doc.nodes) {
 
-            if(pu.registers.length === 0) continue;
+            pu.sys_id = null;
+
+            if (pu.registers.length === 0) continue;
             const before_dot = pu.registers[0].ini_razr;
             const after_dot = pu.registers[0].ini_razr2;
 
-            let res_code = 0;
-            let res_data = '';
-
-            const binds = {
-                kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: doc.pu_id },
+            const pu_binds = {
+                kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
                 kod_point_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.point_id },
                 kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
                 num_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: pu.num },
@@ -285,28 +271,197 @@ module.exports = class MessageHandler extends Consumer {
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
             }
 
-            // const binds = {
-            //     kod_point_pu_: doc.pu_id,
-            //     kod_point_: doc.point_id,
-            //     kod_numobj_: doc.numobj_id,
-            //     num_: pu.num,
-            //     type_: 16583,
-            //     model_: null,
-            //     god_vip_: pu.issue_year,
-            //     dat_pp_: pu.dt_check,
-            //     mpi_: pu.mpi,
-            //     ini_razr_: before_dot,
-            //     ini_razr2_: after_dot,
-            //     dat_s_: pu.dt_install,
-            //     dat_po_: null,
-            //     flow_type_: doc.flow,
-            //     st_: res_code,
-            //     errM_: res_data
-            // };
+            answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', pu_binds);
+            result.proc_calls++;
+            if (answer.error) {
+                this.error(answer.error);
+                result.errors.push({ level: 'PU', type: 'ORACLE', msg: answer.error });
+                continue;
+            }
+            if (answer.data.outBinds.st_ < 0) {
+                this.error(answer.data.outBinds.errM_);
+                result.errors.push({ level: 'PU', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
+                continue;
+            }
+            pu.sys_id = answer.data.outBinds.kod_point_pu_;
 
-            answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', binds);
-            this.debug(answer);
+            for (const reg of pu.registers) {
+
+                const reg_binds = {
+                    kod_point_ini_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
+                    kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.sys_id },
+                    kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
+                    kod_directen_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.direct_id },
+                    energy_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.energy_id },
+                    kodinterval_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.interv_id },
+                    rkoef_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.ini_rkoef },
+                    flow_type_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
+                    st_: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: res_code },
+                    errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
+                }
+
+                answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Ini_', reg_binds);
+                result.proc_calls++;
+                if (answer.error) {
+                    this.error(answer.error);
+                    result.errors.push({ level: 'INI', type: 'ORACLE', msg: answer.error });
+                    continue;
+                }
+                if (answer.data.outBinds.st_ < 0) {
+                    this.error(answer.data.outBinds.errM_);
+                    result.errors.push({ level: 'INI', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
+                    continue;
+                }
+                reg.sys_id = answer.data.outBinds.kod_point_ini_;
+
+                if (reg.ind === undefined) {
+                    const err = { level: 'IND', type: 'STRUCT', msg: 'REGISTER W/O INDICATES' };
+                    this.error(err.msg);
+                    result.errors.push(err);
+                    continue;
+                }
+
+                const ind_binds = {
+                    IND_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
+                    MSG_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.id },
+                    FLOW_TYPE: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
+                    IND_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: reg.ind.id },
+                    INI_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.sys_id },
+                    PU_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.sys_id },
+                    DT: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: new Date(Date.parse(reg.ind.dt)) },
+                    VAL: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.ind.value },
+                    WAY_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.way_id },
+                    // IMP_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 13.1 },
+                    RESULT_CODE: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
+                    RESULT_DATA: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
+                }
+
+                answer = await this.db_helper.callProc('IEG_CONSUMER_VOLS.COUNTER_SAVE_LAST', ind_binds);
+                result.proc_calls++;
+                if (answer.error) {
+                    this.error(answer.error);
+                    result.errors.push({ level: 'IND', type: 'ORACLE', msg: answer.error });
+                    continue;
+                }
+                if (answer.data.outBinds.RESULT_CODE < 0) {
+                    this.error(answer.data.outBinds.RESULT_DATA);
+                    result.errors.push({ level: 'IND', type: 'HANDLE', msg: answer.data.outBinds.RESULT_DATA });
+                    continue;
+                }
+
+                reg.ind.sys_id = answer.data.outBinds.IND_ID;
+            }
         }
+        const end_dt = new Date();
+        console.log(`5.1 TIME: ${end_dt - beg_dt} msec for ${result.proc_calls} SP calls with ${result.errors.length} errors`);
+    }
+
+    async onMsg55(doc) {
+        const result = {
+            errors: [],
+            proc_calls: 0
+        }
+
+        const beg_dt = new Date();
+
+        if (await this.setSysKeysMsg5(doc) === false) {
+            return;
+        }
+
+        for (const pu of doc.nodes) {
+
+            let res_code = 0;
+            let res_data = '';
+            let answer = null;
+
+            for (const reg of pu.registers) {
+
+                const ind_binds = {
+                    IND_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
+                    MSG_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.id },
+                    FLOW_TYPE: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
+                    IND_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: reg.ind.id },
+                    INI_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.sys_id },
+                    PU_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.sys_id },
+                    DT: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: new Date(Date.parse(reg.ind.dt)) },
+                    VAL: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.ind.value },
+                    WAY_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.way_id },
+                    // IMP_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: 13.1 },
+                    RESULT_CODE: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
+                    RESULT_DATA: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
+                }
+
+                answer = await this.db_helper.callProc('IEG_CONSUMER_VOLS.CLOSE_INI', ind_binds);
+                result.proc_calls++;
+                if (answer.error) {
+                    this.error(answer.error);
+                    result.errors.push({ level: 'IND', type: 'ORACLE', msg: answer.error });
+                    continue;
+                }
+                if (answer.data.outBinds.RESULT_CODE < 0) {
+                    this.error(answer.data.outBinds.RESULT_DATA);
+                    result.errors.push({ level: 'IND', type: 'HANDLE', msg: answer.data.outBinds.RESULT_DATA });
+                    continue;
+                }
+            }
+
+            const pu_binds = {
+                kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: pu.sys_id },
+                kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
+                dat_po_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: null },
+                flow_type_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
+                st_: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: res_code },
+                errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
+            }
+
+            answer = await this.db_helper.callProc('IEG_ISE_POINT.remove_Pu_', pu_binds);
+            result.proc_calls++;
+            if (answer.error) {
+                this.error(answer.error);
+                result.errors.push({ level: 'PU', type: 'ORACLE', msg: answer.error });
+                continue;
+            }
+            if (answer.data.outBinds.st_ < 0) {
+                this.error(answer.data.outBinds.errM_);
+                result.errors.push({ level: 'PU', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
+                continue;
+            }
+        }
+
+
+        const end_dt = new Date();
+        console.log(`5.1 TIME: ${end_dt - beg_dt} msec for ${result.proc_calls} SP calls with ${result.errors.length} errors`);
+    }
+
+    async setSysKeysMsg5(doc) {
+        let answer = await this.db_helper.execSql(SqlHolder.get('pu_get_point_info'), { PNT_KOD_POINT: doc.pnt_kod_point });
+
+        if (answer.data.length === 0) {
+            log.error(`Point for 5.1 not found. Message @id = "${doc.id}"`);
+            return false;
+        }
+        doc.flow = answer.data[0].FLOW_TYPE;
+        doc.point_id = answer.data[0].KOD_POINT;
+        doc.numobj_id = answer.data[0].KOD_NUMOBJ;
+
+        for (const pu of doc.nodes) {
+            pu.way_id = this.db_refs.link_dicts.IndWays[pu.indicates_way];
+
+            if (doc.tag === '5.5') {
+                const rows = await this.db_helper.getSysKeysByExtKey(pu.id);
+                if (rows.length > 0) {
+                    pu.sys_id = rows[0].ID;
+                }
+            }
+
+            for (const reg of pu.registers) {
+                reg.direct_id = this.db_refs.link_dicts.Direction[reg.ini_kod_directen];
+                reg.energy_id = this.db_refs.link_dicts.EnergyKind[reg.ini_energy];
+                reg.interv_id = this.db_refs.link_dicts.Intervals[reg.ini_kodinterval];
+            }
+        }
+
+        return true;
     }
 
     async onMessageErr(pack) {

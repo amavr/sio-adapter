@@ -3,6 +3,7 @@
 const oracledb = require('oracledb');
 const log = require('log4js').getLogger('DBHelper');
 const Utils = require('./utils');
+const SqlHolder = require('./sql_holder');
 
 module.exports = class DBHelper {
 
@@ -151,13 +152,26 @@ module.exports = class DBHelper {
             const res = await dbcon.execute(sql, binds, { resultSet: false, autoCommit: false });
             await dbcon.commit();
             answer.data = res;
+            answer.success = true;
         }
         catch (ex) {
             answer.error = ex.message;
+            answer.success = false;
             // console.error(ex);
             await dbcon.rollback();
         }
         return answer;
+    }
+
+    async getSysKeysByExtKey(extKey){
+        const sql = SqlHolder.get('extid_to_sysid');
+        const answer = await this.execSql(sql, [extKey], true);
+        if(answer.success){
+            return answer.data;
+        }
+        else{
+            return [];
+        }
     }
 
     async saveIndicat(doc) {
