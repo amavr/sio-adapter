@@ -15,9 +15,10 @@
         "file_client": {
             "enabled": true,
             "tag": "FILE.PRD",
-            "interval": 3000,
+            "interval": 1000,
 
             "watch_dir": "watch",
+            "x-backup_dir": null,
             "backup_dir": "watch.backup"
         },
         "http_client": {
@@ -42,7 +43,7 @@
             "parallel": 20,
             "tag": "STAT.CSR",
 
-            "dbname": "dalpha",
+            "dbname": "talpha",
             "save_at_second": 20
         },
         "message_handler": {
@@ -50,7 +51,7 @@
             "parallel": 20,
             "tag": "HANDLE.CSR",
 
-            "dbname": "dalpha",
+            "dbname": "talpha",
             "debug_61": false,
             "debug_131": false,
             "debug_161": false,
@@ -98,8 +99,8 @@
                     "  )"
                 ],
                 "poolMin": 2,
-                "poolMax": 8,
-                "poolIncrement": 2
+                "poolMax": 16,
+                "poolIncrement": 1
             }
         },
         "dalpha": {
@@ -117,8 +118,8 @@
                     "  )"
                 ],
                 "poolMin": 2,
-                "poolMax": 20,
-                "poolIncrement": 2
+                "poolMax": 8,
+                "poolIncrement": 1
             }
         }
     }

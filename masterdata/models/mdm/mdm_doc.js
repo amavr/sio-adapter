@@ -124,7 +124,7 @@ module.exports = class MdmDoc extends BaseMsg {
         if(obj_id.includes('ИЖС')){
             this.flow_type = 'ИЖС';
         }
-        else if(obj_id.includes('МКД_ЭО_КВ') || obj_id.includes('_ЭО_МКДНС_')){
+        else if(obj_id.includes('МКД_ЭО_КВ') || obj_id.includes('_ЭО_МКДНС_') || obj_id.includes('_МКДНС_ЭО_КВ_')){
             this.flow_type = 'МКД_КВ';
         }
         else{

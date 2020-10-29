@@ -100,9 +100,10 @@ module.exports = class DBHelper {
             error: null
         }
 
-        let dbcon = await this.getConnection();
+        let dbcon = null;
         while (true) {
             try {
+                dbcon = await this.getConnection();
                 res.execResult = await dbcon.executeMany(sql, rows, options);
                 res.success = res.execResult.rowsAffected === rows.length;
                 await dbcon.commit();
@@ -110,8 +111,8 @@ module.exports = class DBHelper {
                 res.error = ex.message;
                 log.error(ex.message);
                 await Utils.sleep(3000);
-                dbcon = await this.getConnection();
             } finally {
+                await this.close(dbcon);
                 if (res.success) {
                     break;
                 }
@@ -163,13 +164,13 @@ module.exports = class DBHelper {
         return answer;
     }
 
-    async getSysKeysByExtKey(extKey){
+    async getSysKeysByExtKey(extKey) {
         const sql = SqlHolder.get('extid_to_sysid');
         const answer = await this.execSql(sql, [extKey], true);
-        if(answer.success){
+        if (answer.success) {
             return answer.data;
         }
-        else{
+        else {
             return [];
         }
     }

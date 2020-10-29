@@ -18,6 +18,11 @@ module.exports = class MdmSupPoint {
         this.attp_pmax = Adapter.getVal(node, 'МаксимальнаяМощность');
         this.attp_sxpath = Adapter.getVal(node, 'ИспользуетТочкуПрисоединения/ОсуществляетсяПоСхемеПрисоединения/ОписаниеСхемыПрисоединения');
 
+        this.kod_branch = Adapter.getVal(node, 'ИспользуетТочкуПрисоединения/СетеваяОрганизацияТочкиПрисоединения/@id');
+        this.branch_name = Adapter.getVal(node, 'ИспользуетТочкуПрисоединения/СетеваяОрганизацияТочкиПрисоединения/НаименованиеПолное');
+        this.kod_enreg = Adapter.getVal(node, 'ИспользуетТочкуПрисоединения/ПодразделениеСетевойКомпанииВТочкеПрисоединения/@id');
+        this.kod_enreg_name = Adapter.getVal(node, 'ИспользуетТочкуПрисоединения/ПодразделениеСетевойКомпанииВТочкеПрисоединения/НаименованиеПолное');
+
         this.attp_pwc = null;
         this.attp_src = null;
         this.attp_srcfdr = null;
@@ -25,7 +30,7 @@ module.exports = class MdmSupPoint {
 
         this.attp_voltage_kod = null;
         const voltage_kods = Adapter.getVal(node, 'ИспользуетсяРасчетнаяСхема');
-        if(voltage_kods != null && voltage_kods.length > 0){
+        if (voltage_kods != null && voltage_kods.length > 0) {
             this.attp_voltage_kod = Adapter.getVal(voltage_kods[0], 'ИмеетТарифныйУровеньНапряжения');
         }
 
@@ -42,7 +47,7 @@ module.exports = class MdmSupPoint {
     }
 
     static getEmpty(owner_data) {
-        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null]];
+        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null, null, null, null, null]];
         return CntPoint.getEmpty(rep_data);
     }
 
@@ -59,7 +64,7 @@ module.exports = class MdmSupPoint {
             /// цикл по вложенным объектам
             for (const node of this.nodes) {
                 /// каждый потомок возращает массив строк
-                for(const row of node.getColValues(rep_data)){
+                for (const row of node.getColValues(rep_data)) {
                     rows.push(row);
                 }
             }
@@ -77,7 +82,11 @@ module.exports = class MdmSupPoint {
             'attp_pwc',
             'attp_src',
             'attp_srcfdr',
-            'attp_kod_v'
+            'attp_kod_v',
+            'attp_kod_branch',
+            'attp_branch_name',
+            'attp_kod_enreg',
+            'attp_kod_enreg_name',
         ];
     }
 
@@ -91,7 +100,11 @@ module.exports = class MdmSupPoint {
             this.attp_pwc,
             this.attp_src,
             this.attp_srcfdr,
-            this.attp_voltage_kod
+            this.attp_voltage_kod,
+            this.kod_branch,
+            this.branch_name,
+            this.kod_enreg,
+            this.kod_enreg_name
         ];
     }
 
