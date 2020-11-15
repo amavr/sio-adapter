@@ -1,7 +1,9 @@
 'use strict';
 
 const Adapter = require('../../helpers/adapter');
+const { info } = require('../volumes/vol_doc');
 const CntPoint = require('./mdm_cnt_point');
+const BaseMsg = require('../../framework/base_msg');
 
 const ATTP_PWC = 'http://trinidata.ru/sigma/РольЦентрПитания';
 const ATTP_SRC = 'http://trinidata.ru/sigma/РольИсточникПитания';
@@ -11,6 +13,7 @@ const ATTP_SRCFDR = 'http://trinidata.ru/sigma/РольФидер';
 module.exports = class MdmSupPoint {
 
     constructor(node) {
+
         this.attp_kod_attpoint = node['@id'];
         // this.attp_kod_attpoint = node['ИспользуетТочкуПрисоединения']['@id'];
         this.attp_num = Adapter.getVal(node, 'НомерТочкиПоставки');
@@ -135,8 +138,8 @@ module.exports = class MdmSupPoint {
                     res.push(new MdmSupPoint(node));
                 }
                 catch (ex) {
-                    console.warn(`BAD STRUCTURE FOR ATTP POINT WITH @ID = ${node['@id']}`);
-                    console.warn(ex.message);
+                    BaseMsg.warn(`BAD STRUCTURE FOR ATTP POINT WITH @ID = ${node['@id']}`);
+                    BaseMsg.warn(ex.message);
                 }
             }
         }

@@ -23,6 +23,7 @@ module.exports = class MdmDoc extends BaseMsg {
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки',
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ИспользуетсяРасчетнаяСхема',
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная',
+                '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу',
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу/ПуНаИк',
                 '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу/ПуНаИк/РегистрНаПу'
             ].map(item => item.toLowerCase()));
@@ -212,17 +213,18 @@ module.exports = class MdmDoc extends BaseMsg {
                         const x = row[i];
                         if (x !== null) {
                             if (typeof x === 'object') {
+                                BaseMsg.warn('BAD VALUE: ' + JSON.stringify(x));
                                 if (Array.isArray(x)) {
-                                    err += `column #${i} is array`;
+                                    err += `column #${i} is array: ` + JSON.stringify(x) + ' ';
                                 } else {
-                                    err += `column #${i} is object`;
+                                    err += `column #${i} is object` + JSON.stringify(x) + ' ';
                                 }
                                 row[i] = null;
                             }
                         }
                     }
                     if (err) {
-                        row[1] = err;
+                        BaseMsg.warn('HAS ERRORS: ' + err);
                     }
                     rows.push(row);
                 }

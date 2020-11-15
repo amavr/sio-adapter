@@ -1,6 +1,7 @@
 'use strict';
 
 const Adapter = require('../../helpers/adapter');
+const BaseMsg = require('../../framework/base_msg');
 
 module.exports = class MdmRegister {
 
@@ -68,8 +69,8 @@ module.exports = class MdmRegister {
                     res.push(new MdmRegister(node));
                 }
                 catch (ex) {
-                    console.warn(`BAD STRUCTURE FOR REGISTER WITH @ID = ${node['@id']}`);
-                    console.warn(ex.message);
+                    BaseMsg.warn(`BAD STRUCTURE FOR REGISTER WITH @ID = ${node['@id']}`);
+                    BaseMsg.warn(ex.message);
                 }
             }
         }

@@ -2,6 +2,7 @@
 
 const Adapter = require('../../helpers/adapter');
 const Register = require('./mdm_register');
+const BaseMsg = require('../../framework/base_msg');
 
 module.exports = class MdmCntDevice {
 
@@ -83,13 +84,15 @@ module.exports = class MdmCntDevice {
     static parse(nodes) {
         const res = [];
         if (nodes) {
-            for (const node of nodes) {
-                try {
-                    res.push(new MdmCntDevice(node));
-                }
-                catch (ex) {
-                    console.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${node['@id']}`);
-                    console.warn(`${ex.message}`);
+            for (const complex of nodes) {
+                for (const node of complex['ПуНаИк']) {
+                    try {
+                        res.push(new MdmCntDevice(node));
+                    }
+                    catch (ex) {
+                        BaseMsg.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${node['@id']}`);
+                        BaseMsg.warn(`${ex.message}`);
+                    }
                 }
             }
         }

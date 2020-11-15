@@ -12,6 +12,9 @@ if (process.env.NODE_ENV === 'production') {
 } else {
     cfg.work_dir = 'D:/IE/otp/lenenergo.psk.integration/IN';
 }
+if(process.platform === 'win32'){
+    cfg.work_dir = 'D:/IE/otp/lenenergo.psk.integration/IN';
+}
 
 if(cfg.api.dbname){
     cfg.api.db = cfg.databases[cfg.api.dbname].hrPool;

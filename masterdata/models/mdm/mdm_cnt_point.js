@@ -2,6 +2,7 @@
 
 const Adapter = require('../../helpers/adapter');
 const CntDevice = require('./mdm_cnt_device');
+const BaseMsg = require('../../framework/base_msg');
 
 module.exports = class MdmCntPoint {
 
@@ -11,7 +12,8 @@ module.exports = class MdmCntPoint {
         this.pnt_name = Adapter.getVal(node, 'НаименованиеТу');
         this.pnt_dat_s = Adapter.getVal(node, 'ДатаНачалаДействияТУ');
         this.pnt_dat_po = Adapter.getVal(node, 'ДатаОкончанияДействияТУ');
-        this.nodes = CntDevice.parse(node['ИзмерительныйКомплексНаТу']['ПуНаИк']);
+        this.pnt_transit = Adapter.getVal(node, 'ЯвляетсяТранзитной') === true ? 1 : 0;
+        this.nodes = CntDevice.parse(node['ИзмерительныйКомплексНаТу']);
     }
 
     static getColNames() {
@@ -22,7 +24,7 @@ module.exports = class MdmCntPoint {
     }
 
     static getEmpty(owner_data) {
-        const rep_data = [...owner_data, ...[null, null, null, null, null]];
+        const rep_data = [...owner_data, ...[null, null, null, null, null, null]];
         return CntDevice.getEmpty(rep_data);
     }
 
@@ -53,7 +55,8 @@ module.exports = class MdmCntPoint {
             'pnt_num',
             'pnt_name',
             'pnt_dat_s',
-            'pnt_dat_po'
+            'pnt_dat_po',
+            'pnt_transit'
         ];
     }
 
@@ -63,7 +66,8 @@ module.exports = class MdmCntPoint {
             this.pnt_num,
             this.pnt_name,
             this.pnt_dat_s,
-            this.pnt_dat_po
+            this.pnt_dat_po,
+            this.pnt_transit
         ];
     }
 
@@ -76,8 +80,8 @@ module.exports = class MdmCntPoint {
                     res.push(new MdmCntPoint(node));
                 }
                 catch (ex) {
-                    console.warn(`BAD STRUCTURE FOR POINT WITH @ID = ${node['@id']}`);
-                    console.warn(ex.message);
+                    BaseMsg.warn(`BAD STRUCTURE FOR POINT WITH @ID = ${node['@id']}`);
+                    BaseMsg.warn(ex.message);
                 }
             }
         }

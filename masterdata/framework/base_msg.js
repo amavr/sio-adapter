@@ -1,6 +1,10 @@
 'use strict';
 
 module.exports = class BaseMsg{
+
+    static get log() { return this._log; }
+    static set log(l) { this._log = l; }
+
     constructor(data){
         this.id = data.id;
         this.tag = 'SYS';
@@ -30,8 +34,6 @@ module.exports = class BaseMsg{
         return this.countcolValuesers;
     }
 
-
-
     getCounters(){
         return {};
     }
@@ -42,5 +44,23 @@ module.exports = class BaseMsg{
 
     getColValues(){
         return [];
+    }
+
+    static info(msg){
+        if(this.log){
+            this.log.info(msg);
+        }
+    }
+
+    static warn(msg){
+        if(this.log){
+            this.log.warn(msg);
+        }
+    }
+
+    static error(msg){
+        if(this.log){
+            this.log.error(msg);
+        }
     }
 }

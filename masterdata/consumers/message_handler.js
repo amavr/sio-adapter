@@ -8,14 +8,16 @@ const DBHelper = require('../helpers/db_helper');
 const SqlHolder = require('../helpers/sql_holder');
 const OraAdapter = require('../adapters/oracle/ora-adp');
 
+const FileHelper = require('../helpers/file_helper');
+const DBRefs = require('../helpers/db_refs');
+
+const Consumer = require('../framework/consumer');
+const BaseMsg = require('../framework/base_msg');
+
 const MdmDoc = require('../models/mdm/mdm_doc');
 const IndicatDoc = require('../models/indicates/ind_doc');
 const VolumeDoc = require('../models/volumes/vol_doc');
 const CfgDoc = require('../models/mdm_cfg/cfg_doc');
-
-const Consumer = require('../framework/consumer');
-const FileHelper = require('../helpers/file_helper');
-const DBRefs = require('../helpers/db_refs');
 
 module.exports = class MessageHandler extends Consumer {
 
@@ -45,6 +47,7 @@ module.exports = class MessageHandler extends Consumer {
         await this.db_refs.init(this.db_helper);
         // await this.db_helper.execSql('select 1 from dual');
         this.adapter.init(this.db_helper.pool);
+        BaseMsg.log = this.log;
         this.log.info('READY')
     }
 

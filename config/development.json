@@ -2,7 +2,7 @@
     "log_dir": "logs",
     "log_level": "ALL",
     "api": {
-        "dbname": "dalpha"
+        "dbname": "talpha"
     },
     "producers": {
         "fake_client": {
