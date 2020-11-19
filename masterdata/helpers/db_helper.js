@@ -16,7 +16,15 @@ module.exports = class DBHelper {
 
     async init() {
         this.pool = await oracledb.createPool(this.options);
-        log.info('READY');
+        try{
+            // const dbcon = await this.getConnection();
+            // const sql = SqlHolder.get('job_check');
+            // await dbcon.execute(sql);
+            log.info('READY');
+        }
+        catch(ex){
+            log.error(ex.message);
+        }
     }
 
     async getConnection() {
@@ -138,6 +146,29 @@ module.exports = class DBHelper {
         }
     }
 
+    async startHandle() {
+        const sql = `BEGIN IEG_CONTROLLER.RUN(:code, :msg); END;`;
+        const binds = {
+            code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
+            msg: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
+
+        }
+        
+        const dbcon = await this.getConnection();
+        try {
+            const res = await dbcon.execute(sql, binds);
+            await dbcon.commit();
+            log.info(`RUN HANDLE code: ${res.outBinds.code}  msg: ${res.outBinds.msg}`);
+        }
+        catch (ex) {
+            log.error(ex.message);
+            await dbcon.rollback();
+        }
+        finally{
+            this.close(dbcon);
+        }
+    }
+
     async callProc(procName, binds) {
         const answer = {
             // {'<code>': [{id: '', ret_msg: ''}]}
@@ -161,6 +192,9 @@ module.exports = class DBHelper {
             // console.error(ex);
             await dbcon.rollback();
         }
+        finally{
+            this.close(dbcon);
+        }
         return answer;
     }
 
@@ -181,15 +215,15 @@ module.exports = class DBHelper {
         };
 
         // let dbcon = await this.pool.getConnection();
-        let dbcon = await this.getConnection();
         let code;
         for (const node of doc.nodes) {
+            const dbcon = await this.getConnection();
             try {
                 code = -500;
                 // dbcon = await this.pool.getConnection();
                 const res = await dbcon.execute(
                     'begin ' +
-                    'ieg_consumer_vols.counter_save_last(' +
+                    'ieg_consumer_vols.COUNTER_SAVE_LAST(' +
                     ':id_ies_msg_,' +
                     ':id_ies_indicat_,' +
                     ':id_ies_ini_,' +
@@ -204,7 +238,7 @@ module.exports = class DBHelper {
                         id_ies_msg_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.ind_id },
                         id_ies_indicat_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.id },
                         id_ies_ini_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: node.register_id },
-                        readlast_date_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: node.dt },
+                        readlast_date_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: new Date(Date.parse(node.dt)) },
                         readlast_val_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: node.value },
                         id_ies_poktype_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.type },
                         result_code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
@@ -214,6 +248,7 @@ module.exports = class DBHelper {
                         resultSet: false,
                         autoCommit: false
                     });
+                await dbcon.rollback();
                 await dbcon.commit();
 
                 code = res.outBinds.result_code;
@@ -223,11 +258,15 @@ module.exports = class DBHelper {
             catch (ex) {
                 if (!ans[code]) ans[code] = [];
                 ans[code].push({ register_id: node.id, msg: ex.message });
-                console.error(ex);
+                log.error(ex.message);
+                // console.error(ex);
                 await dbcon.rollback();
             }
+            finally{
+                this.close(dbcon);
+            }
         }
-        this.close(dbcon);
+        // this.close(dbcon);
         return ans;
     }
 

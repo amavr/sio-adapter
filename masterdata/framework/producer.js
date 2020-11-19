@@ -91,7 +91,7 @@ module.exports = class Producer extends EventEmitter {
     }
 
     async onIdle() {
-        await hub.sendEvent({ id: null, code: 204, data: null });
+        await hub.sendEvent(null);
     }
 
     info(msg){

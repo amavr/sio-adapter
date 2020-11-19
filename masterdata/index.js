@@ -101,7 +101,7 @@ module.exports = class Worker extends EventEmitter {
                         msg = new CfgDoc(jobj);
                     } else {
                         msg = Worker.makeErrorMsg(pack, 'UNKNOWN-TYPE');
-                        log.error(`${msg.id}\t${msg.error}`);
+                        log.warn(`${msg.id}\t${msg.error}`);
                         return msg;
                     }
                     log.info(`${pack.id} [${msg.tag}]`);

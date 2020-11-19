@@ -18,9 +18,7 @@ module.exports = class Consumer extends EventEmitter {
 
     /// возващает promise
     async onData(msg) {
-        let id = null;
         try {
-            id = msg.id;
             this.onStart();
 
             await this.processMsg(msg)
@@ -29,6 +27,7 @@ module.exports = class Consumer extends EventEmitter {
                 });
         }
         catch (ex) {
+            const id = msg && msg.id ? msg.id : '-';
             this.log.error(`${id}\t${ex.message}`);
         }
     }

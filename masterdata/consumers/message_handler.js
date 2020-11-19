@@ -36,6 +36,10 @@ module.exports = class MessageHandler extends Consumer {
         this.handle_131 = cfg.handle_131
         this.handle_161 = cfg.handle_161
 
+        this.idle_seconds = cfg.idle_seconds;
+        this.last_msg_time = new Date(2000, 0, 1);
+        this.need_check_db = true; // требуется срабатывание триггера на IDLE или он уже срабатывал?
+
         this.db_helper = new DBHelper(cfg.db);
         this.adapter = new OraAdapter();
         this.db_refs = new DBRefs();
@@ -48,30 +52,42 @@ module.exports = class MessageHandler extends Consumer {
         // await this.db_helper.execSql('select 1 from dual');
         this.adapter.init(this.db_helper.pool);
         BaseMsg.log = this.log;
-        this.log.info('READY')
+        this.log.info('READY');
     }
 
     async processMsg(msg) {
         try {
-            if (msg instanceof MdmDoc) {
-                await this.onMsg61(msg);
-            }
-            else if (msg instanceof IndicatDoc) {
-                await this.onMsg131(msg);
-            }
-            else if (msg instanceof VolumeDoc) {
-                await this.onMsg161(msg);
-            }
-            else if (msg instanceof CfgDoc) {
-                if (msg.tag === '5.1') {
-                    await this.onMsg51(msg);
-                }
-                else if (msg.tag === '5.5') {
-                    await this.onMsg55(msg);
+            // IDLE
+            if (msg == null) {
+                if (this.need_check_db && this.idle_seconds <= (new Date().getTime() - this.last_msg_time.getTime()) / 1000) {
+                    await this.onIndle();
                 }
             }
             else {
-                // console.log('UNKNOWN');
+                this.last_msg_time = new Date();
+
+                if (msg instanceof MdmDoc) {
+                    await this.onMsg61(msg);
+                    this.need_check_db = true;
+                }
+                else if (msg instanceof IndicatDoc) {
+                    await this.onMsg131(msg);
+                }
+                else if (msg instanceof VolumeDoc) {
+                    await this.onMsg161(msg);
+                    this.need_check_db = true;
+                }
+                else if (msg instanceof CfgDoc) {
+                    if (msg.tag === '5.1') {
+                        await this.onMsg51(msg);
+                    }
+                    else if (msg.tag === '5.5') {
+                        await this.onMsg55(msg);
+                    }
+                }
+                else {
+                    // console.log('UNKNOWN');
+                }
             }
         }
         catch (ex) {
@@ -80,12 +96,20 @@ module.exports = class MessageHandler extends Consumer {
         }
     }
 
+    /// запуск пакетной обработки
+    async onIndle(doc) {
+        if(this.need_check_db){
+            await this.db_helper.startHandle();
+        }
+        this.need_check_db = false;
+    }
+
     async onMsg61(doc) {
         const time1 = new Date().getTime();
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
         const columns = MdmDoc.getColNames();
-        const sql = `insert into sio_61(`
+        const sql = `insert into sio_msg6_1(`
             + columns.join(', ')
             + ') values('
             + columns.map((e, i) => `:${i + 1}`).join(', ')

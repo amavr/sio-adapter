@@ -15,7 +15,7 @@
                 "xNODE_ENV": "production",
                 "Path":"C:\\oracle\\product\\11.2.0\\client_2\\bin;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\nodejs;C:\\Users\\amavrin\\AppData\\Roaming\\npm",
                 "LOG_LEVEL": "WARN",
-                "PORT": "3004",
+                "MDM_PORT": "3004",
                 "UV_THREADPOOL_SIZE": "20",
                 "xDEBUG": null
             },

@@ -15,7 +15,7 @@
         "file_client": {
             "enabled": true,
             "tag": "FILE.PRD",
-            "interval": 1000,
+            "interval": 5000,
 
             "watch_dir": "watch",
             "x-backup_dir": null,
@@ -26,8 +26,8 @@
             "tag": "HTTP.PRD",
             "interval": 3000,
 
-            "url": "http://localhost:3004/api/v1/rnd",
-            "xurl": "http://localhost:3040/next"
+            "xurl": "http://localhost:3004/api/v1/rnd",
+            "url": "http://localhost:3040/next"
         }
     },
     "consumers": {
@@ -49,14 +49,15 @@
         "message_handler": {
             "enabled": true,
             "parallel": 20,
+            "idle_seconds": 5,
             "tag": "HANDLE.CSR",
 
             "dbname": "talpha",
             "debug_61": false,
-            "debug_131": false,
+            "debug_131": true,
             "debug_161": false,
             "handle_61": false,
-            "handle_131": false,
+            "handle_131": true,
             "handle_161": false,
             "msg_dir": "results/msg",
             "err_dir": "results/err",

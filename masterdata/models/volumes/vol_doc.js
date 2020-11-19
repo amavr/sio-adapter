@@ -15,7 +15,27 @@ module.exports = class VolumeDoc extends BaseMsg {
 
         this.pfx = data['@type'].replace(Utils.extractLastSegment(data['@type']), '');
         this.nodes = VolumeSupPoint.parse(data['РассчитанныйОбъемВТочкеПоставки']);
+        
+        this.flow_type = this.assignFlowType(this.nodes);
     }
+
+    assignFlowType(attp_points){
+        /// default value
+        if(attp_points === null || attp_points.length === 0) return null;
+
+        const attp_code = attp_points[0].kod_attpoint;
+
+        if(attp_code.includes('ИЖС')){
+            this.flow_type = 'ИЖС';
+        }
+        else if(attp_code.includes('МКД_ЭО_КВ') || attp_code.includes('_ЭО_МКДНС_') || attp_code.includes('_МКДНС_ЭО_КВ_')){
+            this.flow_type = 'МКД_КВ';
+        }
+        else{
+            this.flow_type = 'ЮЛ';
+        }
+    }
+
 
     getCounters(){
         const counters = {}
@@ -52,6 +72,7 @@ module.exports = class VolumeDoc extends BaseMsg {
 
     static getSelfColNames() {
         return [
+            'flow_type',
             'filename'
         ];
     }
@@ -61,6 +82,7 @@ module.exports = class VolumeDoc extends BaseMsg {
          * повторяемая часть для всех вложенных объектов
          */
         const my_data = [
+            this.flow_type,
             filename,
             ...this.getSelfColValues(),
             // ...this.sup_points.getColValues()
