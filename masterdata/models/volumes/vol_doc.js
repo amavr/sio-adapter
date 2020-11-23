@@ -22,17 +22,15 @@ module.exports = class VolumeDoc extends BaseMsg {
     assignFlowType(attp_points){
         /// default value
         if(attp_points === null || attp_points.length === 0) return null;
-
         const attp_code = attp_points[0].kod_attpoint;
-
         if(attp_code.includes('ИЖС')){
-            this.flow_type = 'ИЖС';
+            return 'ИЖС';
         }
         else if(attp_code.includes('МКД_ЭО_КВ') || attp_code.includes('_ЭО_МКДНС_') || attp_code.includes('_МКДНС_ЭО_КВ_')){
-            this.flow_type = 'МКД_КВ';
+            return 'МКД_КВ';
         }
         else{
-            this.flow_type = 'ЮЛ';
+            return 'ЮЛ';
         }
     }
 

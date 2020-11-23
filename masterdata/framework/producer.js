@@ -33,6 +33,10 @@ module.exports = class Producer extends EventEmitter {
             const context = this;
             this.timer = setTimeout(this.execute, this.interval, this)
             hub.registerSender(this);
+            this.info('STARTED');
+        }
+        else{
+            this.info('SLEEP');
         }
     }
 

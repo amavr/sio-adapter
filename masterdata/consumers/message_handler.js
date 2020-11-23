@@ -98,7 +98,7 @@ module.exports = class MessageHandler extends Consumer {
 
     /// запуск пакетной обработки
     async onIndle(doc) {
-        if(this.need_check_db){
+        if (this.need_check_db) {
             await this.db_helper.startHandle();
         }
         this.need_check_db = false;
@@ -261,6 +261,7 @@ module.exports = class MessageHandler extends Consumer {
             proc_calls: 0
         }
 
+
         const beg_dt = new Date();
 
         if (await this.setSysKeysMsg5(doc) === false) {
@@ -273,14 +274,15 @@ module.exports = class MessageHandler extends Consumer {
 
         for (const pu of doc.nodes) {
 
-            pu.sys_id = null;
+            const pu_ids = await this.db_helper.existsExtId(pu.id, doc.flow);
+            pu.sys_id = pu_ids.length > 0 ? pu_ids[0].ID : null;
 
             if (pu.registers.length === 0) continue;
             const before_dot = pu.registers[0].ini_razr;
             const after_dot = pu.registers[0].ini_razr2;
 
             const pu_binds = {
-                kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
+                kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: pu.sys_id },
                 kod_point_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.point_id },
                 kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
                 num_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: pu.num },
@@ -298,24 +300,32 @@ module.exports = class MessageHandler extends Consumer {
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
             }
 
-            answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', pu_binds);
-            result.proc_calls++;
-            if (answer.error) {
-                this.error(answer.error);
-                result.errors.push({ level: 'PU', type: 'ORACLE', msg: answer.error });
-                continue;
+            if (pu.sys_id === null) {
+                answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', pu_binds);
+                pu.sys_id = answer.data.outBinds.kod_point_pu_;
+                await this.db_helper.addPair(pu.sys_id, pu.id, 9, doc.flow, '5.1');
+                result.proc_calls++;
+
+                if (answer.error) {
+                    this.error(answer.error);
+                    result.errors.push({ level: 'PU', type: 'ORACLE', msg: answer.error });
+                    continue;
+                }
+                if (answer.data.outBinds.st_ < 0) {
+                    this.error(answer.data.outBinds.errM_);
+                    result.errors.push({ level: 'PU', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
+                    continue;
+                }
             }
-            if (answer.data.outBinds.st_ < 0) {
-                this.error(answer.data.outBinds.errM_);
-                result.errors.push({ level: 'PU', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
-                continue;
-            }
-            pu.sys_id = answer.data.outBinds.kod_point_pu_;
+
 
             for (const reg of pu.registers) {
 
+                const reg_ids = await this.db_helper.existsExtId(reg.ini_kod_point_ini, doc.flow);
+                reg.sys_id = reg_ids.length > 0 ? reg_ids[0].ID : null;
+
                 const reg_binds = {
-                    kod_point_ini_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
+                    kod_point_ini_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: reg.sys_id },
                     kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.sys_id },
                     kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
                     kod_directen_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.direct_id },
@@ -327,19 +337,23 @@ module.exports = class MessageHandler extends Consumer {
                     errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
                 }
 
-                answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Ini_', reg_binds);
-                result.proc_calls++;
-                if (answer.error) {
-                    this.error(answer.error);
-                    result.errors.push({ level: 'INI', type: 'ORACLE', msg: answer.error });
-                    continue;
+                if (reg.sys_id === null) {
+                    answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Ini_', reg_binds);
+                    reg.sys_id = answer.data.outBinds.kod_point_ini_;
+                    await this.db_helper.addPair(reg.sys_id, reg.ini_kod_point_ini, 10, doc.flow, '5.1');
+                    result.proc_calls++;
+
+                    if (answer.error) {
+                        this.error(answer.error);
+                        result.errors.push({ level: 'INI', type: 'ORACLE', msg: answer.error });
+                        continue;
+                    }
+                    if (answer.data.outBinds.st_ < 0) {
+                        this.error(answer.data.outBinds.errM_);
+                        result.errors.push({ level: 'INI', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
+                        continue;
+                    }
                 }
-                if (answer.data.outBinds.st_ < 0) {
-                    this.error(answer.data.outBinds.errM_);
-                    result.errors.push({ level: 'INI', type: 'HANDLE', msg: answer.data.outBinds.errM_ });
-                    continue;
-                }
-                reg.sys_id = answer.data.outBinds.kod_point_ini_;
 
                 if (reg.ind === undefined) {
                     const err = { level: 'IND', type: 'STRUCT', msg: 'REGISTER W/O INDICATES' };
@@ -348,8 +362,11 @@ module.exports = class MessageHandler extends Consumer {
                     continue;
                 }
 
+                const ind_ids = await this.db_helper.existsExtId(reg.ind.id, doc.flow);
+                reg.ind.sys_id = ind_ids.length > 0 ? ind_ids[0].ID : null;
+
                 const ind_binds = {
-                    IND_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: null },
+                    IND_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: reg.ind.sys_id },
                     MSG_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.id },
                     FLOW_TYPE: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
                     IND_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: reg.ind.id },
@@ -363,20 +380,23 @@ module.exports = class MessageHandler extends Consumer {
                     RESULT_DATA: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
                 }
 
-                answer = await this.db_helper.callProc('IEG_CONSUMER_VOLS.COUNTER_SAVE_LAST', ind_binds);
-                result.proc_calls++;
-                if (answer.error) {
-                    this.error(answer.error);
-                    result.errors.push({ level: 'IND', type: 'ORACLE', msg: answer.error });
-                    continue;
-                }
-                if (answer.data.outBinds.RESULT_CODE < 0) {
-                    this.error(answer.data.outBinds.RESULT_DATA);
-                    result.errors.push({ level: 'IND', type: 'HANDLE', msg: answer.data.outBinds.RESULT_DATA });
-                    continue;
-                }
+                if (reg.ind.sys_id === null) {
+                    answer = await this.db_helper.callProc('IEG_CONSUMER_VOLS.COUNTER_SAVE_LAST', ind_binds);
+                    reg.ind.sys_id = answer.data.outBinds.IND_ID;
+                    await this.db_helper.addPair(reg.ind.sys_id, reg.ind.id, 30, doc.flow, '5.1');
+                    result.proc_calls++;
 
-                reg.ind.sys_id = answer.data.outBinds.IND_ID;
+                    if (answer.error) {
+                        this.error(answer.error);
+                        result.errors.push({ level: 'IND', type: 'ORACLE', msg: answer.error });
+                        continue;
+                    }
+                    if (answer.data.outBinds.RESULT_CODE < 0) {
+                        this.error(answer.data.outBinds.RESULT_DATA);
+                        result.errors.push({ level: 'IND', type: 'HANDLE', msg: answer.data.outBinds.RESULT_DATA });
+                        continue;
+                    }
+                }
             }
         }
         const end_dt = new Date();
@@ -408,7 +428,7 @@ module.exports = class MessageHandler extends Consumer {
                     MSG_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.id },
                     FLOW_TYPE: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
                     IND_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: reg.ind.id },
-                    INI_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.sys_id },
+                    INI_IES: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: reg.ini_kod_point_ini },
                     PU_ID: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: pu.sys_id },
                     DT: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: new Date(Date.parse(reg.ind.dt)) },
                     VAL: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: reg.ind.value },
@@ -435,7 +455,7 @@ module.exports = class MessageHandler extends Consumer {
             const pu_binds = {
                 kod_point_pu_: { type: oracledb.NUMBER, dir: oracledb.BIND_INOUT, val: pu.sys_id },
                 kod_numobj_: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doc.numobj_id },
-                dat_po_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: null },
+                dat_po_: { type: oracledb.DATE, dir: oracledb.BIND_IN, val: pu.dt_uninstall },
                 flow_type_: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: doc.flow },
                 st_: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: res_code },
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
@@ -457,7 +477,7 @@ module.exports = class MessageHandler extends Consumer {
 
 
         const end_dt = new Date();
-        console.log(`5.1 TIME: ${end_dt - beg_dt} msec for ${result.proc_calls} SP calls with ${result.errors.length} errors`);
+        console.log(`5.5 TIME: ${end_dt - beg_dt} msec for ${result.proc_calls} SP calls with ${result.errors.length} errors`);
     }
 
     async setSysKeysMsg5(doc) {

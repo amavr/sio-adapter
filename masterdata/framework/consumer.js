@@ -67,6 +67,7 @@ module.exports = class Consumer extends EventEmitter {
     }
 
     init() {
+        this.info(this.enabled ? 'READY' : 'SLEEP');
         if (this.enabled) {
             hub.subscribe(this);
         }

@@ -32,7 +32,7 @@ module.exports = class Statistics extends Consumer {
 
         // this.saveAt(this, this.calcTimeout(this));
 
-        this.log.info('READY');
+        // this.log.info(this.enabled ? 'READY' : 'SLEEP');
     }
 
     async saveStartEvent() {

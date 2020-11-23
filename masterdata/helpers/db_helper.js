@@ -51,6 +51,16 @@ module.exports = class DBHelper {
         await this.pool.rollback();
     }
 
+    async existsExtId(extId, flowType){
+        const sql = 'select id from ier_link_objects where id_ies = :ext_id and flow_type = :flow';
+        const binds = {
+            ext_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: extId },
+            flow: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: flowType }
+        };
+        const answer = await this.execSql(sql, binds);
+        return answer.data;
+    }
+
     async execSql(sql, binds, autoCommit) {
         const res = {
             success: false,
@@ -156,9 +166,10 @@ module.exports = class DBHelper {
         
         const dbcon = await this.getConnection();
         try {
+            log.info(`RUN HANDLE`);
             const res = await dbcon.execute(sql, binds);
             await dbcon.commit();
-            log.info(`RUN HANDLE code: ${res.outBinds.code}  msg: ${res.outBinds.msg}`);
+            log.info(`RUN HANDLE result - code: ${res.outBinds.code}  msg: ${res.outBinds.msg}`);
         }
         catch (ex) {
             log.error(ex.message);
@@ -168,6 +179,33 @@ module.exports = class DBHelper {
             this.close(dbcon);
         }
     }
+
+    async addPair(sysId, extId, objTypeId, flowType, tag) {
+        const sql = 'BEGIN IEG_MDM.ADD_PAIR(:sys_id, :ext_id, :type_id, :flow, :tag_code); END;';
+        const binds = {
+            sys_id: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: sysId },
+            ext_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: extId },
+            type_id: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: objTypeId },
+            flow: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: flowType },
+            tag_code: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: tag }
+        }
+        
+        const dbcon = await this.getConnection();
+        try {
+            const res = await dbcon.execute(sql, binds);
+            await dbcon.commit();
+        }
+        catch (ex) {
+            log.error(ex.message);
+            await dbcon.rollback();
+        }
+        finally{
+            this.close(dbcon);
+        }
+    }
+
+
+
 
     async callProc(procName, binds) {
         const answer = {
@@ -248,7 +286,7 @@ module.exports = class DBHelper {
                         resultSet: false,
                         autoCommit: false
                     });
-                await dbcon.rollback();
+                // await dbcon.rollback();
                 await dbcon.commit();
 
                 code = res.outBinds.result_code;
