@@ -22,7 +22,7 @@
             "backup_dir": "watch.backup"
         },
         "http_client": {
-            "enabled": false,
+            "enabled": true,
             "tag": "HTTP.PRD",
             "interval": 3000,
 

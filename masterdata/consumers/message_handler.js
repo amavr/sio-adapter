@@ -268,6 +268,12 @@ module.exports = class MessageHandler extends Consumer {
             return;
         }
 
+        const not_exec = true;
+        if(not_exec){
+            console.warn('5.1 DB processing is disabled');
+            console.info('For enable you have comment line at 271 line in message_handler');
+        }
+
         let res_code = 0;
         let res_data = '';
         let answer = null;
@@ -299,6 +305,8 @@ module.exports = class MessageHandler extends Consumer {
                 st_: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: res_code },
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
             }
+
+            if(not_exec) continue;
 
             if (pu.sys_id === null) {
                 answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', pu_binds);
@@ -415,7 +423,14 @@ module.exports = class MessageHandler extends Consumer {
             return;
         }
 
+        const not_exec = true;
+        if(not_exec){
+            console.warn('5.5 DB processing is disabled');
+            console.info('For enable you have comment line at 427 line in message_handler');
+        }
+
         for (const pu of doc.nodes) {
+
 
             let res_code = 0;
             let res_data = '';
@@ -437,6 +452,8 @@ module.exports = class MessageHandler extends Consumer {
                     RESULT_CODE: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
                     RESULT_DATA: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
                 }
+
+                if(not_exec) continue;
 
                 answer = await this.db_helper.callProc('IEG_CONSUMER_VOLS.CLOSE_INI', ind_binds);
                 result.proc_calls++;
@@ -460,6 +477,8 @@ module.exports = class MessageHandler extends Consumer {
                 st_: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT, val: res_code },
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
             }
+
+            if(not_exec) continue;
 
             answer = await this.db_helper.callProc('IEG_ISE_POINT.remove_Pu_', pu_binds);
             result.proc_calls++;

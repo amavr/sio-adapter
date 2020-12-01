@@ -157,6 +157,12 @@ module.exports = class DBHelper {
     }
 
     async startHandle() {
+
+        console.warn('START IEG_CONTROLLER.RUN DISABLED');
+        console.info('To enable it you have comment lines in db_helper on line 164');
+
+        return;
+
         const sql = `BEGIN IEG_CONTROLLER.RUN(:code, :msg); END;`;
         const binds = {
             code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
