@@ -21,7 +21,7 @@
             "backup_dir": "backup"
         },
         "http_client": {
-            "enabled": false,
+            "enabled": true,
             "tag": "HTTP.PRD  ",
             "interval": 3000,
 
@@ -50,7 +50,7 @@
             "tag": "HANDLE.CSR",
 
             "debug_61": false,
-            "debug_131": true,
+            "debug_131": false,
             "debug_161": false,
             "handle_61": false,
             "handle_131": true,

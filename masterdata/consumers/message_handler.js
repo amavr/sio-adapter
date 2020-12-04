@@ -94,13 +94,17 @@ module.exports = class MessageHandler extends Consumer {
                 }
                 catch (ex) {
                     this.error(`${pack.id}\t${ex.message}\tin buildMessage()`);
-                    FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                    if(pack.id){
+                        FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                    }
                     msg = MessageHandler.makeErrorMsg(pack, ex.message);
                     this.error(`${msg.id ? msg.id : ''}\t${msg.code}\t${msg.error}`);
                 }
             }
             else {
-                FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                if(pack.id){
+                    FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                }
                 msg = MessageHandler.makeErrorMsg(pack, pack.data ? pack.data : 'UNCORRECTED');
                 this.error(`${msg.id ? msg.id : ''}\t${msg.code}\t${msg.error}`);
             }
@@ -190,6 +194,7 @@ module.exports = class MessageHandler extends Consumer {
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
         const columns = MdmDoc.getColNames();
+        // const sql = `insert into sio_61(`
         const sql = `insert into sio_msg6_1(`
             + columns.join(', ')
             + ') values('
