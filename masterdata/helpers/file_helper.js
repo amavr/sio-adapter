@@ -29,6 +29,17 @@ class FileHelper {
         return fsp.readdir(dirPath, options);
     }
 
+    static changeFileDir(filePath, newDirPath){
+        const fname = path.parse(filePath).base;
+        return path.join(newDirPath, fname);
+    }
+
+    static changeFileExt(filePath, newExt){
+        const ext = ('.' + newExt).replace('..', '.');
+        const info = path.parse(filePath);
+        return path.join(info.dir, info.name + ext);
+    }
+
     static async getRandomFileName(dirPath){
         const files = await FileHelper.getFiles(dirPath);
         const i = Math.floor(Math.random() * files.length);
@@ -91,7 +102,7 @@ class FileHelper {
     }
 
     static async save(filePath, val) {
-        FileHelper.checkDir(filePath);
+        FileHelper.checkFileDir(filePath);
         return await fsp.writeFile(filePath, val);
     }
 
@@ -101,7 +112,7 @@ class FileHelper {
     }
 
     static saveSync(filePath, val) {
-        FileHelper.checkDir(filePath);
+        FileHelper.checkFileDir(filePath);
         fs.writeFileSync(filePath, val);
     }
 
@@ -114,7 +125,7 @@ class FileHelper {
     }
 
     static moveFileSync(sour, dest, onError) {
-        FileHelper.checkDir(dest);
+        FileHelper.checkFileDir(dest);
         fs.rename(sour, dest, err => {
             if (err) {
                 if (onError === undefined) {
@@ -131,11 +142,14 @@ class FileHelper {
         fs.appendFileSync(filePath, data);
     }
 
-    static checkDir(filePath) {
-        const dir = path.dirname(filePath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
+    static checkDir(dirPath) {
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
         }
+    }
+
+    static checkFileDir(filePath) {
+        FileHelper.checkDir(path.dirname(filePath));
     }
 
     static getTimeFilename(ext){

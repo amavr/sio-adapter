@@ -8,7 +8,10 @@ module.exports = class FakeClient extends Producer {
     constructor(cfg) {
         super(cfg);
         this.delay = cfg.delay;
-        this.info(`READY with delay = ${this.delay} msec`);
+    }
+
+    startInfo(){
+        return `READY with delay = ${this.delay} msec`;
     }
 
     async handle() {

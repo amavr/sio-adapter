@@ -3,36 +3,15 @@
 const path = require('path');
 const moment = require('moment');
 
-const Consumer = require('../framework/consumer');
 const BaseMsg = require('../framework/base_msg');
 
-const DBHelper = require('../helpers/db_helper');
-const FileHelper = require('../helpers/file_helper');
-const Utils = require('../helpers/utils');
+module.exports = class Statistics {
 
-module.exports = class Statistics extends Consumer {
-
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, dbHelper) {
         this.save_at_second = cfg.save_at_second;
         this.counters = {};
 
-        this.db_helper = new DBHelper(cfg.db);
-    }
-
-    async init() {
-        super.init();
-
-        // initFiles();
-
-        await this.db_helper.init();
-        await this.db_helper.execSql('select 1 from dual');
-
-        await this.saveStartEvent();
-
-        // this.saveAt(this, this.calcTimeout(this));
-
-        // this.log.info(this.enabled ? 'READY' : 'SLEEP');
+        this.db_helper = dbHelper;
     }
 
     async saveStartEvent() {

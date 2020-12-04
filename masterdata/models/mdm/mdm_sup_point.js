@@ -128,7 +128,6 @@ module.exports = class MdmSupPoint {
         }
     }
 
-
     /// разбор массива точек поставки
     static parse(nodes) {
         const res = [];

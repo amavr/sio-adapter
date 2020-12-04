@@ -28,15 +28,16 @@ module.exports = class Producer extends EventEmitter {
         return false;
     }
 
+    startInfo(){
+        return '';
+    }
+
     async start() {
         if (this.enabled) {
             const context = this;
             this.timer = setTimeout(this.execute, this.interval, this)
             hub.registerSender(this);
-            this.info('STARTED');
-        }
-        else{
-            this.info('SLEEP');
+            this.info('STARTED ' + this.startInfo());
         }
     }
 
@@ -62,14 +63,11 @@ module.exports = class Producer extends EventEmitter {
             }
             try {
 
-                /// 
-                const msg = msgFactory.createMsg(pack);
-
                 /// последовательное выполнение
-                // await context.onData(msg);
+                // await context.onData(pack);
 
                 /// параллельное выполнение
-                context.onData(msg);
+                context.onData(pack);
 
                 // log.debug('send data');
             }
@@ -86,8 +84,8 @@ module.exports = class Producer extends EventEmitter {
         context.timer = setTimeout(context.execute, context.interval, context);
     }
 
-    async onData(msg) {
-        await hub.sendEvent(msg);
+    async onData(pack) {
+        await hub.sendEvent(pack);
     }
 
     async onError(pack) {

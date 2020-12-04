@@ -13,8 +13,10 @@ module.exports = class HttpClient extends Producer {
     constructor(cfg) {
         super(cfg);
         this.url = cfg.url;
+    }
 
-        this.log.info(`READY ${this.url}`);
+    startInfo(){
+        return `WATCH ${this.url}`;
     }
 
     /**
@@ -32,17 +34,18 @@ module.exports = class HttpClient extends Producer {
 
     async request() {
         let resp = null;
-        const answer = { id: null, data: null, code: 0 }
         try {
             resp = await got(this.url);
         }
         catch (ex) {
-            answer.data = ex.message;
-            if(ex.response) answer.code = ex.response.statusCode;
-            return answer;
+            return {
+                code: ex.response ? ex.response.statusCode : 500,
+                data: ex.message,
+                id: null
+            }
         }
 
-        answer.code = resp.statusCode;
+        const answer = { id: null, data: null, code: resp.statusCode }
 
         if (answer.code === 200) {
             const msgId = resp.headers['file'];

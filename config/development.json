@@ -1,29 +1,28 @@
 {
     "log_dir": "logs",
     "log_level": "ALL",
-    "api": {
-        "dbname": "talpha"
-    },
+    "work_dir": "D:\\IE\\otp\\lenenergo.psk.integration\\IN\\work",
+    "dbname": "talpha",
     "producers": {
         "fake_client": {
             "enabled": false,
-            "tag": "FAKE.PRD",
+            "tag": "FAKE.PRD  ",
             "interval": 1200,
 
             "delay": 1000
         },
         "file_client": {
             "enabled": true,
-            "tag": "FILE.PRD",
+            "tag": "FILE.PRD  ",
             "interval": 5000,
 
             "watch_dir": "watch",
             "x-backup_dir": null,
-            "backup_dir": "watch.backup"
+            "backup_dir": "backup"
         },
         "http_client": {
-            "enabled": true,
-            "tag": "HTTP.PRD",
+            "enabled": false,
+            "tag": "HTTP.PRD  ",
             "interval": 3000,
 
             "xurl": "http://localhost:3004/api/v1/rnd",
@@ -34,16 +33,14 @@
         "test_consumer": {
             "enabled": false,
             "parallel": 5,
-            "tag": "FAKE.CSR",
+            "tag": "FAKE.CSR  ",
 
             "delay": 2000
         },
         "statistics": {
             "enabled": false,
             "parallel": 20,
-            "tag": "STAT.CSR",
-
-            "dbname": "talpha",
+            "tag": "STAT.CSR  ",
             "save_at_second": 20
         },
         "message_handler": {
@@ -52,17 +49,14 @@
             "idle_seconds": 5,
             "tag": "HANDLE.CSR",
 
-            "dbname": "talpha",
             "debug_61": false,
             "debug_131": true,
             "debug_161": false,
             "handle_61": false,
             "handle_131": true,
             "handle_161": false,
-            "msg_dir": "results/msg",
-            "err_dir": "results/err",
-            "log_dir": "results/log",
-            "dbg_dir": "results/dbg"
+            "msg_dir": "msg",
+            "dbg_dir": "dbg"
         }
     },
     "databases": {

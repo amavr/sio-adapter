@@ -1,20 +1,20 @@
 'use strict';
 
 const oracledb = require('oracledb');
-const log = require('log4js').getLogger('DBHelper');
+const log = require('log4js').getLogger('DB.HELPER ');
 const Utils = require('./utils');
 const SqlHolder = require('./sql_holder');
 
-module.exports = class DBHelper {
+class DBHelper {
 
-    constructor(cfg) {
+    constructor() {
         oracledb.extendedMetaData = true;
-        this.options = cfg;
-        this.options.connectString = this.options.cs.join('\n');
         this.pool = null;
     }
 
-    async init() {
+    async init(cfg) {
+        this.options = cfg;
+        this.options.connectString = this.options.cs.join('\n');
         this.pool = await oracledb.createPool(this.options);
         try{
             // const dbcon = await this.getConnection();
@@ -109,7 +109,7 @@ module.exports = class DBHelper {
     async insertMany(sql, rows) {
         var options = {
             autoCommit: true,   // autocommit if there are no batch errors
-            batchErrors: false   // позволяет отклонять только неверные операции
+            batchErrors: false   // true - продолжение выполнения, даже если существуют ошибки в части записей
         };
 
         const res = {
@@ -126,17 +126,21 @@ module.exports = class DBHelper {
                 res.success = res.execResult.rowsAffected === rows.length;
                 await dbcon.commit();
             } catch (ex) {
-                res.error = ex.message;
-                log.error(ex.message);
-                await Utils.sleep(3000);
-            } finally {
-                await this.close(dbcon);
-                if (res.success) {
-                    break;
+                try{
+                    await dbcon.ping();
                 }
+                catch(ex){
+                    // только в это случае нужен повторный цикл и пауза
+                    await this.close(dbcon);
+                    await Utils.sleep(3000);
+                    continue; 
+                }
+                res.error = ex.message;
+                await dbcon.rollback();
             }
+            await this.close(dbcon);   
+            break;         
         }
-        this.close(dbcon);
 
         return res;
     }
@@ -737,3 +741,5 @@ module.exports = class DBHelper {
     }
 
 }
+
+module.exports = new DBHelper();

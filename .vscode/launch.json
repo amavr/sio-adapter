@@ -2,7 +2,7 @@
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
+    "version": "0.3.0",
     "configurations": [
         {
             "type": "node",
@@ -12,7 +12,9 @@
                 "<node_internals>/**"
             ],
             "env": {
-                "xNODE_ENV": "production",
+                "NODE_ENV": "development",
+                "pNODE_ENV": "production",
+                "dNODE_ENV": "development",
                 "Path":"C:\\oracle\\product\\11.2.0\\client_2\\bin;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\nodejs;C:\\Users\\amavrin\\AppData\\Roaming\\npm",
                 "LOG_LEVEL": "WARN",
                 "MDM_PORT": "3004",

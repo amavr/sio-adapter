@@ -16,7 +16,6 @@ module.exports = class TestConsumer extends Consumer {
         const context = this;
         return new Promise((resolve, reject) => {
             super.init();
-            context.log.info(`READY`);
             resolve();
         });
     }

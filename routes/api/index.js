@@ -7,15 +7,12 @@ const sqlFormatter = require('sql-formatter');
 
 const cfg = require('../../config').api;
 const holder = require('../../masterdata/helpers/sql_holder');
-const DBHelper = require('../../masterdata/helpers/db_helper');
+const db_helper = require('../../masterdata/helpers/db_helper');
 const FileHelper = require('../../masterdata/helpers/file_helper');
 
 const log = log4js.getLogger("api");
 
 const http_codes = [204, 301, 304, 400, 401, 403, 404, 500, 503];
-
-const db_helper = new DBHelper(cfg.db);
-db_helper.init();
 
 const base_dir = 'D:/IE/files';
 const dirs = ['out_message6_1_BYT_MAY_126.files', 'out_message13_1_BYT_MAY_111.files', 'out_message16_1_MAY_125.files'];

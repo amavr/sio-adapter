@@ -1,16 +1,17 @@
 'use strict';
 
-const log = require('log4js').getLogger('DBRefs');
+const log = require('log4js').getLogger('REFERENCES');
 
 const SqlHolder = require('./sql_holder');
 
-module.exports = class DBRefs {
+class DBRefs {
     constructor(){
         this.link_dicts = {
             IndWays: {},
             Direction: {},
             EnergyKind: {},
-            Intervals: {}
+            Intervals: {},
+            CalcMethod: {}
         }
     }
 
@@ -30,8 +31,13 @@ module.exports = class DBRefs {
             else if(row.KOD_DICT === 11){
                 this.link_dicts.Intervals[row.ID_IES] = row.ID;
             }
+            else if(row.KOD_DICT === 14){
+                this.link_dicts.CalcMethod[row.ID_IES] = row.ID;
+            }
         }
         log.info(`REFERENCES LOADED`);
     }
 
 }
+
+module.exports = new DBRefs();

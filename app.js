@@ -6,8 +6,6 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const oracledb = require('oracledb');
 
-const cfg = require('./config');
-
 const log4js = require('log4js');
 const log = log4js.getLogger('app');
 log.level = 'debug';
@@ -24,11 +22,9 @@ log.info("Client:".padStart(ofs) + oracledb.oracleClientVersionString);
 log.info("".padEnd(32, '='));
 
 
-
-
 const indexRouter = require('./routes');
 const Worker = require('./masterdata');
-const worker = new Worker(cfg);
+const worker = new Worker();
 
 const app = express();
 

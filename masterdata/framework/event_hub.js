@@ -5,7 +5,6 @@ const log = require('log4js').getLogger('hub');
 class EventHub {
 
     constructor() {
-        log.info('READY');
         this.senders = [];
         this.subs = [];
         this.allConsumersReady = true;
@@ -36,10 +35,10 @@ class EventHub {
         this.allConsumersReady = this.subs.every(sub => sub.isReady());
     }
 
-    async sendEvent(msg) {
+    async sendEvent(pack) {
         /// подписчики на событие
         for (const sub of this.subs) {
-            await sub.onData(msg);
+            await sub.onData(pack);
         }
     }
 

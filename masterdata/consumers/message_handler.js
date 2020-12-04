@@ -4,15 +4,17 @@ const path = require('path');
 const oracledb = require('oracledb');
 
 const CONST = require('../resources/const.json');
-const DBHelper = require('../helpers/db_helper');
 const SqlHolder = require('../helpers/sql_holder');
 const OraAdapter = require('../adapters/oracle/ora-adp');
 
 const FileHelper = require('../helpers/file_helper');
-const DBRefs = require('../helpers/db_refs');
+const db_helper = require('../helpers/db_helper');
+const db_refs = require('../helpers/db_refs');
 
 const Consumer = require('../framework/consumer');
 const BaseMsg = require('../framework/base_msg');
+
+const Statistics = require('./statistics');
 
 const MdmDoc = require('../models/mdm/mdm_doc');
 const IndicatDoc = require('../models/indicates/ind_doc');
@@ -21,13 +23,13 @@ const CfgDoc = require('../models/mdm_cfg/cfg_doc');
 
 module.exports = class MessageHandler extends Consumer {
 
-    constructor(cfg) {
+    constructor(cfg, statObj) {
         super(cfg);
 
         this.msg_dir = path.join(cfg.work_dir, cfg.msg_dir);
-        this.err_dir = path.join(cfg.work_dir, cfg.err_dir);
-        this.log_dir = path.join(cfg.work_dir, cfg.log_dir);
         this.dbg_dir = path.join(cfg.work_dir, cfg.dbg_dir);
+        FileHelper.checkDir(this.msg_dir);
+        FileHelper.checkDir(this.dbg_dir);
 
         this.debug_61 = cfg.debug_61
         this.debug_131 = cfg.debug_131
@@ -38,24 +40,94 @@ module.exports = class MessageHandler extends Consumer {
 
         this.idle_seconds = cfg.idle_seconds;
         this.last_msg_time = new Date(2000, 0, 1);
-        this.need_check_db = true; // требуется срабатывание триггера на IDLE или он уже срабатывал?
+        /** требуется запуск джоба на IDLE или он уже срабатывал? */
+        this.need_check_db = true; 
 
-        this.db_helper = new DBHelper(cfg.db);
+        this.db_helper = db_helper;
         this.adapter = new OraAdapter();
-        this.db_refs = new DBRefs();
+        this.db_refs = db_refs;
+
+        this.stat = statObj;
+        this.stat.db_helper = this.db_helper;
     }
 
     async init() {
         super.init();
-        await this.db_helper.init();
-        await this.db_refs.init(this.db_helper);
         // await this.db_helper.execSql('select 1 from dual');
         this.adapter.init(this.db_helper.pool);
         BaseMsg.log = this.log;
-        this.log.info('READY');
     }
 
-    async processMsg(msg) {
+    buildMessage(pack) {
+        let msg = null;
+        if (pack === null) {
+            return msg;
+        }
+        /// IDLE
+        else if (pack.id === null && pack.data === null) {
+            return msg;
+        }
+        else {
+            if (pack.code === 200) {
+                try {
+                    const jobj = JSON.parse(pack.data);
+                    jobj.id = pack.id;
+                    const ies_type = jobj['@type'] ? jobj['@type'] : CONST.MSG_TYPES.NO_TYPE;
+
+                    if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
+                        msg = new MdmDoc(jobj);
+                    } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
+                        msg = new IndDoc(jobj);
+                    } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
+                        msg = new VolumeDoc(jobj);
+                    } else if (ies_type === CONST.MSG_TYPES.TYPE_CFG) {
+                        msg = new CfgDoc(jobj);
+                    } else {
+                        msg = MessageHandler.makeErrorMsg(pack, ies_type ? 'UNKNOWN-TYPE: ' + ies_type : 'MSG TYPE NOT DEFINED');
+                        FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                        this.warn(`${msg.id}\t${msg.error}`);
+                    }
+                    this.info(`${pack.id} [${msg.tag}]`);
+                    this.stat.processMsg(msg);
+                    return msg;
+
+                }
+                catch (ex) {
+                    this.error(`${pack.id}\t${ex.message}\tin buildMessage()`);
+                    FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                    msg = MessageHandler.makeErrorMsg(pack, ex.message);
+                    this.error(`${msg.id ? msg.id : ''}\t${msg.code}\t${msg.error}`);
+                }
+            }
+            else {
+                FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                msg = MessageHandler.makeErrorMsg(pack, pack.data ? pack.data : 'UNCORRECTED');
+                this.error(`${msg.id ? msg.id : ''}\t${msg.code}\t${msg.error}`);
+            }
+            return msg;
+        }
+    }
+
+    static makeErrorMsg(pack, error) {
+        const msg = new BaseMsg(pack);
+        msg.id = pack.id;
+        msg.tag = 'ERROR';
+        msg.raw = pack.data;
+        msg.error = error;
+        msg.code = pack.code;
+        return msg;
+    }
+
+    async processMsg(pack) {
+        let msg = null;
+        try {
+            msg = this.buildMessage(pack);
+        }
+        catch (ex) {
+            this.error(ex.message);
+            return msg;
+        }
+
         try {
             // IDLE
             if (msg == null) {
@@ -66,32 +138,39 @@ module.exports = class MessageHandler extends Consumer {
             else {
                 this.last_msg_time = new Date();
 
+                let need_to_save = false;
+
                 if (msg instanceof MdmDoc) {
-                    await this.onMsg61(msg);
                     this.need_check_db = true;
+                    need_to_save = await this.onMsg61(msg);
                 }
                 else if (msg instanceof IndicatDoc) {
-                    await this.onMsg131(msg);
+                    need_to_save = await this.onMsg131(msg);
                 }
                 else if (msg instanceof VolumeDoc) {
-                    await this.onMsg161(msg);
                     this.need_check_db = true;
+                    need_to_save = await this.onMsg161(msg);
                 }
                 else if (msg instanceof CfgDoc) {
                     if (msg.tag === '5.1') {
-                        await this.onMsg51(msg);
+                        need_to_save = await this.onMsg51(msg);
                     }
                     else if (msg.tag === '5.5') {
-                        await this.onMsg55(msg);
+                        need_to_save = await this.onMsg55(msg);
                     }
                 }
                 else {
                     // console.log('UNKNOWN');
                 }
+
+                if(need_to_save){
+                    FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+                }
             }
         }
         catch (ex) {
-            this.log.error(`${msg.id}\t${ex.message}\tMessageHandler.processMsg()`);
+            FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
+            this.error(`${msg.id}\t${ex.message}\tMessageHandler.processMsg()`);
             throw ex;
         }
     }
@@ -105,6 +184,8 @@ module.exports = class MessageHandler extends Consumer {
     }
 
     async onMsg61(doc) {
+        let need_to_save = false;
+
         const time1 = new Date().getTime();
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
@@ -115,11 +196,28 @@ module.exports = class MessageHandler extends Consumer {
             + columns.map((e, i) => `:${i + 1}`).join(', ')
             + ')';
 
-        const res = await this.db_helper.insertMany(sql, rows_data);
+        // rows_data[1][6] = null;
+        // for(const row of rows_data){
+        //     row[6] = null;
+        // }
+
+        let res = await this.db_helper.insertMany(sql, rows_data);
+
+        if(!res.success){
+            this.error(`${doc.id}\t${res.error}`);
+            return true; // исходный файл сохранить
+        }
 
         if (res.batchErrors) {
-            this.log.warn(res.batchErrors);
+            this.warn(res.batchErrors);
+            need_to_save = true;
         }
+
+        /// ЗАГРУЗКА ТРАНЗИТНЫХ ТОЧЕК В SIO_POINT_CHAINS
+        const trans_rows = doc.transit.map(r => [r.parent_id, r.child_id, r.dir, r.type, r.calc_method]);
+        const sql_trans = 'insert into sio_transit(master_ies, detail_ies, kod_directen, detail_type, calc_method) values(:1, :2, :3, :4, :5)';
+        res = await this.db_helper.insertMany(sql_trans, trans_rows);
+
 
         if (this.handle_61) {
 
@@ -140,6 +238,8 @@ module.exports = class MessageHandler extends Consumer {
             const end_time = new Date().getTime();
             console.log(`${doc.id.padStart(10)}\ttimes: ${time2 - time1}/${time3 - time2}/${time4 - time3}/${end_time - time4} total:${end_time - time1} msec`);
         }
+
+        return need_to_save;
     }
 
     async onMsg131(doc) {
@@ -157,7 +257,7 @@ module.exports = class MessageHandler extends Consumer {
     }
 
     async onMsg161(doc) {
-        this.log.debug('receive 16.1')
+        this.debug('receive 16.1')
 
         const result = {
             att_points: [],
@@ -166,16 +266,13 @@ module.exports = class MessageHandler extends Consumer {
         /// ЗАГРУЗКА В SIO_MSG16_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
         const columns = VolumeDoc.getColNames();
-        const sql = `insert into sio_msg16_1(`
-            + columns.join(', ')
-            + ') values('
-            + columns.map((e, i) => `:${i + 1}`).join(', ')
-            + ')';
-
-        const res = await this.db_helper.insertMany(sql, rows_data);
+        const col_names = columns.join(', ');
+        const col_nums = columns.map((e, i) => `:${i + 1}`).join(', ');
+        const sql_base_tab = `insert into sio_msg16_1(${col_names}) values(${col_nums})`;
+        let res = await this.db_helper.insertMany(sql_base_tab, rows_data);
 
         if (res.batchErrors) {
-            this.log.warn(res.batchErrors);
+            this.warn(res.batchErrors);
         }
 
         if (this.handle_161) {
@@ -269,7 +366,7 @@ module.exports = class MessageHandler extends Consumer {
         }
 
         const not_exec = true;
-        if(not_exec){
+        if (not_exec) {
             console.warn('5.1 DB processing is disabled');
             console.info('For enable you have comment line at 271 line in message_handler');
         }
@@ -306,7 +403,7 @@ module.exports = class MessageHandler extends Consumer {
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
             }
 
-            if(not_exec) continue;
+            if (not_exec) continue;
 
             if (pu.sys_id === null) {
                 answer = await this.db_helper.callProc('IEG_ISE_POINT.insOrUpd_Pu_', pu_binds);
@@ -424,7 +521,7 @@ module.exports = class MessageHandler extends Consumer {
         }
 
         const not_exec = true;
-        if(not_exec){
+        if (not_exec) {
             console.warn('5.5 DB processing is disabled');
             console.info('For enable you have comment line at 427 line in message_handler');
         }
@@ -453,7 +550,7 @@ module.exports = class MessageHandler extends Consumer {
                     RESULT_DATA: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
                 }
 
-                if(not_exec) continue;
+                if (not_exec) continue;
 
                 answer = await this.db_helper.callProc('IEG_CONSUMER_VOLS.CLOSE_INI', ind_binds);
                 result.proc_calls++;
@@ -478,7 +575,7 @@ module.exports = class MessageHandler extends Consumer {
                 errM_: { type: oracledb.STRING, dir: oracledb.BIND_OUT, val: res_data }
             }
 
-            if(not_exec) continue;
+            if (not_exec) continue;
 
             answer = await this.db_helper.callProc('IEG_ISE_POINT.remove_Pu_', pu_binds);
             result.proc_calls++;
@@ -532,11 +629,12 @@ module.exports = class MessageHandler extends Consumer {
 
     async onMessageErr(pack) {
         if (pack && this.save_debug) {
-            this.log.error(pack.error);
-            const fname = pack.id ? pack.id : FileHelper.getTimeFilename('.log');
-            const fpath = path.join(this.err_dir, fname);
+            this.error(pack.error);
+            const fname = pack.id ? pack.id : FileHelper.getTimeFilename('.txt');
+            const fpath = path.join(this.msg_dir, fname);
             FileHelper.saveObj(fpath, pack);
         }
     }
+
 
 }

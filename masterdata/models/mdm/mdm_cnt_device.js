@@ -85,12 +85,15 @@ module.exports = class MdmCntDevice {
         const res = [];
         if (nodes) {
             for (const complex of nodes) {
-                for (const node of complex['ПуНаИк']) {
+                const pu_list = complex['ПуНаИк'];
+                if(!pu_list) continue;
+
+                for (const pu of pu_list) {
                     try {
-                        res.push(new MdmCntDevice(node));
+                        res.push(new MdmCntDevice(pu));
                     }
                     catch (ex) {
-                        BaseMsg.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${node['@id']}`);
+                        BaseMsg.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${pu['@id']}`);
                         BaseMsg.warn(`${ex.message}`);
                     }
                 }

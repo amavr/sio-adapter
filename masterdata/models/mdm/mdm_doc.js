@@ -18,15 +18,7 @@ module.exports = class MdmDoc extends BaseMsg {
         super(data);
         this.tag = '6.1';
 
-        Adapter.normalize(data, '',
-            [
-                '/ОбеспечиваетсяЭэЧерезТочкиПоставки',
-                '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ИспользуетсяРасчетнаяСхема',
-                '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная',
-                '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу',
-                '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу/ПуНаИк',
-                '/ОбеспечиваетсяЭэЧерезТочкиПоставки/ТочкаУчетаРасчетная/ИзмерительныйКомплексНаТу/ПуНаИк/РегистрНаПу'
-            ].map(item => item.toLowerCase()));
+        Adapter.normalize(data, '', CONST.ARRAY_ROUTES.map(item => item.toLowerCase()));
 
         this.abon_kodp = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ЯвляетсяПотребителем/@id');
         this.abon_name = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ЯвляетсяПотребителем/НаименованиеПолное');
@@ -67,6 +59,13 @@ module.exports = class MdmDoc extends BaseMsg {
         this.nodes = attp_points === null ? null : SupPoint.parse(attp_points);
         
         this.assignFlowType(attp_points);
+
+        this.transit = null;
+        this.calc_schema = {
+            points: {} // словарь точек (ключ - ID точки, значение - объект (метод расч., ...) )
+        };
+        this.extractTransitChains(data);
+        this.setPointsProps();
     }
 
     getCounters(){
@@ -133,6 +132,81 @@ module.exports = class MdmDoc extends BaseMsg {
         }
     }
 
+    extractTransitChains(data) {
+        const chains = [];
+
+        // Обход точек подключения
+        const attp_points = Adapter.getVal(data, 'ОбеспечиваетсяЭэЧерезТочкиПоставки');
+        if(attp_points === null) return chains;
+
+        const schemas = {};
+        for (const ap of attp_points) {
+
+            // перебор всех СР и транзитных цепочек
+            const used_schemas = Adapter.getVal(ap, 'ИспользуетсяРасчетнаяСхема');
+            if(used_schemas === null) continue;
+
+            for (const sch of used_schemas) {
+                const schema_id = sch['@id'];
+                schemas[schema_id] = { parents: [], childs: [] }
+                const schema_points = Adapter.getVal(sch, 'ТочкаУчетаВРасчетнойСхеме');
+                if (schema_points === null) continue;
+                // из одной ТУ цепочку не построить
+                if (schema_points.length < 2) continue;
+
+                // перебор точек СР
+                for (const p of schema_points) {
+                    const ptype = p['ИмеетТипТочкиУчета'];
+                    const method = p['ИмеетМетодРасчета'];
+                    const cnt_point = Adapter.getVal(p, 'ЯвляетсяТУ');
+                    if (cnt_point === null) continue;
+
+                    const pid = typeof cnt_point === 'object' ? cnt_point['@id'] : cnt_point;
+                    if(this.calc_schema.points[pid] === undefined){
+                        this.calc_schema.points[pid] = {
+                            calc_method: method
+                        }
+                    }
+
+                    if (ptype === 'http://trinidata.ru/sigma/ТочкаУчетаОсновная') {
+                        schemas[schema_id].parents.push(pid);
+                    }
+                    else {
+                        const pdir = p['НаправлениеУчетаРасчетнойСхемыТу'];
+                        const type_id = ptype;
+                        schemas[schema_id].childs.push({ id: pid, type: type_id, dir: pdir, calc_method: method });
+                    }
+                }
+            }
+        }
+
+        // чистка свойств СР без ТУ 
+        for (const key of Object.keys(schemas)) {
+            const parents = schemas[key].parents;
+            const childs = schemas[key].childs;
+            if (parents.length === 0 || childs.length === 0) {
+                delete schemas[key];
+                continue;
+            }
+            for (const id of parents) {
+                for (const cp of childs) {
+                    chains.push({ parent_id: id, child_id: cp.id, type: cp.type, dir: cp.dir, calc_method: cp.calc_method });
+                }
+            }
+        }
+
+        this.transit = chains;
+    }
+
+    setPointsProps(){
+        for(const ap of this.nodes){
+            for(const cp of ap.nodes){
+                if(this.calc_schema.points[cp.pnt_kod_point]){
+                    cp.pnt_rs_props.calc_method = this.calc_schema.points[cp.pnt_kod_point].calc_method;
+                }
+            }
+        }
+    }
 
     /**
      * Получить все наименования столбцов: свои столбцы + столбцы инкапсулированных классов
