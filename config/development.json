@@ -21,7 +21,7 @@
             "backup_dir": "backup"
         },
         "http_client": {
-            "enabled": true,
+            "enabled": false,
             "tag": "HTTP.PRD  ",
             "interval": 3000,
 

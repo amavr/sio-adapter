@@ -151,8 +151,24 @@ module.exports = class MdmDoc extends BaseMsg {
                 schemas[schema_id] = { parents: [], childs: [] }
                 const schema_points = Adapter.getVal(sch, 'ТочкаУчетаВРасчетнойСхеме');
                 if (schema_points === null) continue;
+                if (schema_points.length === 0) continue;
+
                 // из одной ТУ цепочку не построить
-                if (schema_points.length < 2) continue;
+                if (schema_points.length === 1) {
+                    const p = schema_points[0];
+                    const method = p['ИмеетМетодРасчета'];
+                    const cnt_point = Adapter.getVal(p, 'ЯвляетсяТУ');
+                    if (cnt_point === null) continue;
+
+                    const pid = typeof cnt_point === 'object' ? cnt_point['@id'] : cnt_point;
+                    if(this.calc_schema.points[pid] === undefined){
+                        this.calc_schema.points[pid] = {
+                            calc_method: method
+                        }
+                    }
+
+                    continue;
+                }
 
                 // перебор точек СР
                 for (const p of schema_points) {
