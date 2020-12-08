@@ -8,6 +8,7 @@ module.exports = class MdmCntDevice {
 
     constructor(node) {
         this.pu_kod_point_pu = Adapter.getVal(node, '@id');
+        this.pu_kind = Adapter.getVal(node, 'ИмеетВидИзмерительногоТрансформатора', null);
         this.pu_num = Adapter.getVal(node, 'НомерСредстваИзмерения');
         this.pu_type = Adapter.getVal(node, 'НаименованиеТипаПу');
         this.pu_model = Adapter.getVal(node, 'МодельУстройства');
@@ -27,7 +28,7 @@ module.exports = class MdmCntDevice {
     }
 
     static getEmpty(owner_data) {
-        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null, null]];
+        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null, null, null]];
         return Register.getEmpty(rep_data);
     }
 
@@ -57,6 +58,7 @@ module.exports = class MdmCntDevice {
             'pu_kod_point_pu',
             'pu_num',
             'pu_type',
+            'pu_kind',
             'pu_model',
             'pu_mpi',
             'pu_god_vip',
@@ -71,6 +73,7 @@ module.exports = class MdmCntDevice {
             this.pu_kod_point_pu,
             this.pu_num,
             this.pu_type,
+            this.pu_kind,
             this.pu_model,
             this.pu_mpi,
             this.pu_god_vip,
@@ -84,16 +87,16 @@ module.exports = class MdmCntDevice {
     static parse(nodes) {
         const res = [];
         if (nodes) {
-            for (const complex of nodes) {
-                const pu_list = complex['ПуНаИк'];
-                if(!pu_list) continue;
+            for (const node of nodes) {
+                const devices = node['ПуНаИк'] ? node['ПуНаИк'] : node['ИтНаИк'];
+                if(!devices) continue;
 
-                for (const pu of pu_list) {
+                for (const device of devices) {
                     try {
-                        res.push(new MdmCntDevice(pu));
+                        res.push(new MdmCntDevice(device));
                     }
                     catch (ex) {
-                        BaseMsg.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${pu['@id']}`);
+                        BaseMsg.warn(`BAD STRUCTURE FOR DEVICE WITH @ID = ${device['@id']}`);
                         BaseMsg.warn(`${ex.message}`);
                     }
                 }
