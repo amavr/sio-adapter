@@ -24,8 +24,9 @@ module.exports = class FileClient extends Producer {
     }
 
     async handle() {
+        let fname = null;
         try {
-            const fname = await this.getFile();
+            fname = await this.getFile();
             if (fname === undefined) {
                 await this.onIdle();
                 return null;

@@ -41,7 +41,7 @@ module.exports = class MessageHandler extends Consumer {
         this.idle_seconds = cfg.idle_seconds;
         this.last_msg_time = new Date(2000, 0, 1);
         /** требуется запуск джоба на IDLE или он уже срабатывал? */
-        this.need_check_db = true; 
+        this.need_check_db = true;
 
         this.db_helper = db_helper;
         this.adapter = new OraAdapter();
@@ -77,7 +77,7 @@ module.exports = class MessageHandler extends Consumer {
                     if (ies_type === CONST.MSG_TYPES.TYPE_MDM) {
                         msg = new MdmDoc(jobj);
                     } else if (ies_type === CONST.MSG_TYPES.TYPE_IND) {
-                        msg = new IndDoc(jobj);
+                        msg = new IndicatDoc(jobj);
                     } else if (ies_type === CONST.MSG_TYPES.TYPE_VOL) {
                         msg = new VolumeDoc(jobj);
                     } else if (ies_type === CONST.MSG_TYPES.TYPE_CFG) {
@@ -94,7 +94,7 @@ module.exports = class MessageHandler extends Consumer {
                 }
                 catch (ex) {
                     this.error(`${pack.id}\t${ex.message}\tin buildMessage()`);
-                    if(pack.id){
+                    if (pack.id) {
                         FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
                     }
                     msg = MessageHandler.makeErrorMsg(pack, ex.message);
@@ -102,7 +102,7 @@ module.exports = class MessageHandler extends Consumer {
                 }
             }
             else {
-                if(pack.id){
+                if (pack.id) {
                     FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
                 }
                 msg = MessageHandler.makeErrorMsg(pack, pack.data ? pack.data : 'UNCORRECTED');
@@ -164,10 +164,11 @@ module.exports = class MessageHandler extends Consumer {
                     }
                 }
                 else {
+                    need_to_save = true;
                     // console.log('UNKNOWN');
                 }
 
-                if(need_to_save){
+                if (need_to_save) {
                     FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
                 }
             }
@@ -194,8 +195,8 @@ module.exports = class MessageHandler extends Consumer {
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
         const rows_data = doc.getColValues(doc.id);
         const columns = MdmDoc.getColNames();
-        // const sql = `insert into sio_61(`
-        const sql = `insert into sio_msg6_1(`
+        const sql = `insert into sio_61(`
+        // const sql = `insert into sio_msg6_1(`
             + columns.join(', ')
             + ') values('
             + columns.map((e, i) => `:${i + 1}`).join(', ')
@@ -208,7 +209,7 @@ module.exports = class MessageHandler extends Consumer {
 
         let res = await this.db_helper.insertMany(sql, rows_data);
 
-        if(!res.success){
+        if (!res.success) {
             this.error(`${doc.id}\t${res.error}`);
             return true; // исходный файл сохранить
         }
@@ -248,10 +249,12 @@ module.exports = class MessageHandler extends Consumer {
     }
 
     async onMsg131(doc) {
+        let need_to_save = false;
 
         if (this.handle_131) {
 
             const answer = await this.db_helper.saveIndicat(doc);
+            need_to_save = !answer.success;
 
             if (this.debug_131) {
                 const codes = '.' + Object.keys(answer).join('.');
@@ -259,10 +262,12 @@ module.exports = class MessageHandler extends Consumer {
                 await FileHelper.saveObj(fpath, answer);
             }
         }
+        return need_to_save;
     }
 
     async onMsg161(doc) {
         this.debug('receive 16.1')
+        let need_to_save = false;
 
         const result = {
             att_points: [],
@@ -278,6 +283,7 @@ module.exports = class MessageHandler extends Consumer {
 
         if (res.batchErrors) {
             this.warn(res.batchErrors);
+            need_to_save = true;
         }
 
         if (this.handle_161) {
@@ -292,6 +298,10 @@ module.exports = class MessageHandler extends Consumer {
                 /// open for changes
                 const ans_open = await this.db_helper.accept_priem(sup_point.kod_attpoint, true);
                 sup_info.open = ans_open;
+
+                if(!ans_open.success){
+                    need_to_save = true;
+                }
 
                 // ans_open.code = 200;
                 // ans_open.ym = 2020.05;
@@ -344,8 +354,14 @@ module.exports = class MessageHandler extends Consumer {
                         sup_info.close = ans_close;
                     }
                 }
+                else {
+                    need_to_save = true;
+                }
                 /// close for changes
                 const ans_close = await this.db_helper.accept_priem(sup_point.kod_attpoint, false);
+                if(!ans_open.success){
+                    need_to_save = true;
+                }
 
                 result.att_points.push(sup_info);
 
@@ -355,6 +371,8 @@ module.exports = class MessageHandler extends Consumer {
                 }
             }
         }
+
+        return need_to_save;
     }
 
     async onMsg51(doc) {

@@ -15,7 +15,7 @@ module.exports = class VolumeDoc extends BaseMsg {
 
         this.pfx = data['@type'].replace(Utils.extractLastSegment(data['@type']), '');
         this.nodes = VolumeSupPoint.parse(data['РассчитанныйОбъемВТочкеПоставки']);
-        
+        this.nobj_kod_numobj = data['РасчетныйОбъектЭнергоснабжения'];
         this.flow_type = this.assignFlowType(this.nodes);
     }
 
@@ -71,7 +71,8 @@ module.exports = class VolumeDoc extends BaseMsg {
     static getSelfColNames() {
         return [
             'flow_type',
-            'filename'
+            'filename',
+            'nobj_kod_numobj'
         ];
     }
 
@@ -82,6 +83,7 @@ module.exports = class VolumeDoc extends BaseMsg {
         const my_data = [
             this.flow_type,
             filename,
+            this.nobj_kod_numobj,
             ...this.getSelfColValues(),
             // ...this.sup_points.getColValues()
         ];

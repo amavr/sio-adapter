@@ -163,7 +163,7 @@ class DBHelper {
     async startHandle() {
 
         console.warn('START IEG_CONTROLLER.RUN DISABLED');
-        console.info('To enable it you have comment lines in db_helper on line 164');
+        console.info('To enable it you have delete return from db_helper.js');
 
         return;
 
@@ -259,6 +259,7 @@ class DBHelper {
 
     async saveIndicat(doc) {
         const ans = {
+            success: true
             // {'<code>': [{id: '', ret_msg: ''}]}
         };
 
@@ -302,6 +303,9 @@ class DBHelper {
                 code = res.outBinds.result_code;
                 if (!ans[code]) ans[code] = [];
                 ans[code].push({ register_id: node.id, msg: res.outBinds.result_msg });
+                if(res.outBinds.result_code < 0){
+                    ans.success = false;
+                }
             }
             catch (ex) {
                 if (!ans[code]) ans[code] = [];
@@ -309,6 +313,7 @@ class DBHelper {
                 log.error(ex.message);
                 // console.error(ex);
                 await dbcon.rollback();
+                ans.success = false;
             }
             finally{
                 this.close(dbcon);
@@ -527,6 +532,7 @@ class DBHelper {
 
     async accept_priem(key, doAccept) {
         const ans = {
+            success: true,
             code: 200,
             msg: '',
             ym: null
@@ -570,6 +576,7 @@ class DBHelper {
 
             console.error(ex);
             await dbcon.rollback();
+            ans.success = false;
         }
         finally {
             this.close(dbcon);

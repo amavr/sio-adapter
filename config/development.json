@@ -17,8 +17,8 @@
             "interval": 5000,
 
             "watch_dir": "watch",
-            "x-backup_dir": null,
-            "backup_dir": "backup"
+            "backup_dir": null,
+            "x-backup_dir": "backup"
         },
         "http_client": {
             "enabled": false,
@@ -48,6 +48,8 @@
             "parallel": 20,
             "idle_seconds": 5,
             "tag": "HANDLE.CSR",
+
+            "buf_tab_61": "sio_61",
 
             "debug_61": false,
             "debug_131": false,
