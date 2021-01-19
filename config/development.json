@@ -2,7 +2,7 @@
     "log_dir": "logs",
     "log_level": "ALL",
     "work_dir": "D:\\IE\\otp\\lenenergo.psk.integration\\IN\\work",
-    "dbname": "talpha",
+    "dbname": "dalpha",
     "producers": {
         "fake_client": {
             "enabled": false,
@@ -49,13 +49,16 @@
             "idle_seconds": 5,
             "tag": "HANDLE.CSR",
 
-            "buf_tab_61": "sio_61",
+            "carantine_61": "SIO_MSG6_1",
+            "carantine_131": "SIO_MSG13_1",
+            "carantine_161": "SIO_MSG16_1",
+            "job_enabled": false,
 
             "debug_61": false,
             "debug_131": false,
             "debug_161": false,
             "handle_61": false,
-            "handle_131": true,
+            "handle_131": false,
             "handle_161": false,
             "msg_dir": "msg",
             "dbg_dir": "dbg"
@@ -111,6 +114,25 @@
                     "    )",
                     "    (CONNECT_DATA = ",
                     "      (SERVICE_NAME = DALPHA)",
+                    "    )",
+                    "  )"
+                ],
+                "poolMin": 2,
+                "poolMax": 8,
+                "poolIncrement": 1
+            }
+        },
+        "alpha": {
+            "hrPool": {
+                "user": "I_USER3",
+                "password": "qwe123",
+                "cs": [
+                    " (DESCRIPTION = ",
+                    "    (ADDRESS_LIST = ",
+                    "      (ADDRESS = (PROTOCOL = TCP)(HOST = len-oradb.energo.ru)(PORT = 1521))",
+                    "    )",
+                    "    (CONNECT_DATA = ",
+                    "      (SERVICE_NAME = ALPHA)",
                     "    )",
                     "  )"
                 ],

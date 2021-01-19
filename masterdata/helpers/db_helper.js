@@ -16,11 +16,12 @@ class DBHelper {
         this.options = cfg;
         this.options.connectString = this.options.cs.join('\n');
         this.pool = await oracledb.createPool(this.options);
+        this.dbname = cfg.cs.join().replace(/.*SERVICE_NAME\s*=\s*(\w+)\W*/gi, '$1'); 
         try{
             // const dbcon = await this.getConnection();
             // const sql = SqlHolder.get('job_check');
             // await dbcon.execute(sql);
-            log.info('READY');
+            log.info('READY ' + (this.dbname ? this.dbname.toUpperCase() : 'UNKNOWN'));
         }
         catch(ex){
             log.error(ex.message);
@@ -100,6 +101,20 @@ class DBHelper {
     }
 
     /**
+     * Сохраняет ошибки в таблицу SIO_MSG_ERRORS
+     * @param {string(32)} tag 
+     * @param {string(200)} source 
+     * @param {Array<string>} errors 
+     */
+    async saveErrors(tag, source, errors){
+        const rows = [];
+        for(const e of errors){
+            rows.push([tag, source, e]);
+        }
+        return await this.insertMany(SqlHolder.get('save_errors'), rows);
+    }
+
+    /**
      * Пакетная запись в БД.
      * !!! Перед вызовом метода нужно подключиться к базе - db_helper.connect(), а после - отключиться !!!
      * @param {string} sql Запрос в виде 'insert into emp(id, name) values(:1, :2)'
@@ -161,12 +176,6 @@ class DBHelper {
     }
 
     async startHandle() {
-
-        console.warn('START IEG_CONTROLLER.RUN DISABLED');
-        console.info('To enable it you have delete return from db_helper.js');
-
-        return;
-
         const sql = `BEGIN IEG_CONTROLLER.RUN(:code, :msg); END;`;
         const binds = {
             code: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },

@@ -7,11 +7,16 @@ const BaseMsg = require('../framework/base_msg');
 
 module.exports = class Statistics {
 
-    constructor(cfg, dbHelper) {
+    constructor(cfg) {
         this.save_at_second = cfg.save_at_second;
         this.counters = {};
 
+        this.db_helper = null;
+    }
+
+    async init(dbHelper){
         this.db_helper = dbHelper;
+        await this.saveStartEvent();
     }
 
     async saveStartEvent() {

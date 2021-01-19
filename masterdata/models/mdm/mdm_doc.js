@@ -17,6 +17,8 @@ module.exports = class MdmDoc extends BaseMsg {
     constructor(data) {
         super(data);
         this.tag = '6.1';
+        this.errors = [];
+        MdmDoc.getColNames();
 
         Adapter.normalize(data, '', CONST.ARRAY_ROUTES.map(item => item.toLowerCase()));
 
@@ -39,7 +41,7 @@ module.exports = class MdmDoc extends BaseMsg {
         this.dg_dat_numdog = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ДатаДокумента');
         this.dg_dat_dog = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ДатаВступленияВСилуДокумента');
         this.dg_dat_fin = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ДатаОкончанияДействияДокумента');
-        if(Array.isArray(this.dg_dat_fin)){
+        if (Array.isArray(this.dg_dat_fin)) {
             this.dg_dat_fin = this.dg_dat_fin.pop();
         }
         this.dg_dep = 'Упр';
@@ -51,16 +53,17 @@ module.exports = class MdmDoc extends BaseMsg {
         this.nobj_kat = Adapter.getVal(data, 'КатегорияНадежности');
 
         const ds = Adapter.getVal(data, 'ПризнакИсусэБп', null);
-        this.nobj_datasource = ds === true 
-            ? 'ПЭС' : ds === false 
-            ? 'ЕБ' : null;
+        this.nobj_datasource = ds === true
+            ? 'ПЭС' : ds === false
+                ? 'ЕБ' : null;
 
         const attp_points = Adapter.getVal(data, 'ОбеспечиваетсяЭэЧерезТочкиПоставки');
         this.nodes = attp_points === null ? null : SupPoint.parse(attp_points);
-        
+
         this.assignFlowType(attp_points);
 
-        this.transit = null;
+        this.transit = null;        // иерархия и характеристики ТУ
+        this.balance_points = []; // соответствие точки баланса (ТБ) точке учета ТУ - используется в обработке 16.1
         this.calc_schema = {
             points: {} // словарь точек (ключ - ID точки, значение - объект (метод расч., ...) )
         };
@@ -68,8 +71,9 @@ module.exports = class MdmDoc extends BaseMsg {
         this.setPointsProps();
     }
 
-    getCounters(){
+    getCounters() {
         const counters = {};
+        counters[CONST.RU.msg] = 1;
         counters[CONST.RU.abon] = 1;
         counters[CONST.RU.dog] = 1;
         counters[CONST.RU.obj] = 1;
@@ -88,19 +92,19 @@ module.exports = class MdmDoc extends BaseMsg {
         // };
 
         /// ТП
-        if(this.nodes){
+        if (this.nodes) {
             counters[CONST.RU.attp] = this.nodes.length;
             this.nodes.forEach((attp_node) => {
                 /// ТУ
-                if(attp_node.nodes){
+                if (attp_node.nodes) {
                     counters[CONST.RU.point] += attp_node.nodes.length;
                     attp_node.nodes.forEach((point_node) => {
                         /// ПУ
-                        if(point_node.nodes){
+                        if (point_node.nodes) {
                             counters[CONST.RU.pu] += point_node.nodes.length;
                             point_node.nodes.forEach((pu_node) => {
                                 /// Шкалы
-                                if(pu_node.nodes){
+                                if (pu_node.nodes) {
                                     counters[CONST.RU.ini] += pu_node.nodes.length;
                                 }
                             });
@@ -113,38 +117,42 @@ module.exports = class MdmDoc extends BaseMsg {
         return counters;
     }
 
-    assignFlowType(attp_points){
+    assignFlowType(attp_points) {
         /// default value
         this.flow_type = 'ЮЛ';
 
-        if(attp_points === null || attp_points.length === 0) return;
+        if (attp_points === null || attp_points.length === 0) return;
 
         const obj_id = attp_points[0]['@id'];
 
-        if(obj_id.includes('ИЖС')){
+        if (obj_id.includes('ИЖС')) {
             this.flow_type = 'ИЖС';
         }
-        else if(obj_id.includes('МКД_ЭО_КВ') || obj_id.includes('_ЭО_МКДНС_') || obj_id.includes('_МКДНС_ЭО_КВ_')){
+        else if (obj_id.includes('МКД_ЭО_КВ') || obj_id.includes('_ЭО_МКДНС_') || obj_id.includes('_МКДНС_ЭО_КВ_')) {
             this.flow_type = 'МКД_КВ';
         }
-        else{
+        else {
             this.flow_type = 'ЮЛ';
         }
     }
 
     extractTransitChains(data) {
+        this.balance_points.length = 0; // очистка массива связей ТБ и ТУ
         const chains = [];
+        
+        // словарь ссылок на ТУ для назначения им тарифных свойств из РасчСхемы
+        const points_dic = this.getCntPoints();
 
         // Обход точек подключения
         const attp_points = Adapter.getVal(data, 'ОбеспечиваетсяЭэЧерезТочкиПоставки');
-        if(attp_points === null) return chains;
+        if (attp_points === null) return chains;
 
         const schemas = {};
         for (const ap of attp_points) {
 
             // перебор всех СР и транзитных цепочек
             const used_schemas = Adapter.getVal(ap, 'ИспользуетсяРасчетнаяСхема');
-            if(used_schemas === null) continue;
+            if (used_schemas === null) continue;
 
             for (const sch of used_schemas) {
                 const schema_id = sch['@id'];
@@ -152,23 +160,6 @@ module.exports = class MdmDoc extends BaseMsg {
                 const schema_points = Adapter.getVal(sch, 'ТочкаУчетаВРасчетнойСхеме');
                 if (schema_points === null) continue;
                 if (schema_points.length === 0) continue;
-
-                // из одной ТУ цепочку не построить
-                if (schema_points.length === 1) {
-                    const p = schema_points[0];
-                    const method = p['ИмеетМетодРасчета'];
-                    const cnt_point = Adapter.getVal(p, 'ЯвляетсяТУ');
-                    if (cnt_point === null) continue;
-
-                    const pid = typeof cnt_point === 'object' ? cnt_point['@id'] : cnt_point;
-                    if(this.calc_schema.points[pid] === undefined){
-                        this.calc_schema.points[pid] = {
-                            calc_method: method
-                        }
-                    }
-
-                    continue;
-                }
 
                 // перебор точек СР
                 for (const p of schema_points) {
@@ -178,19 +169,33 @@ module.exports = class MdmDoc extends BaseMsg {
                     if (cnt_point === null) continue;
 
                     const pid = typeof cnt_point === 'object' ? cnt_point['@id'] : cnt_point;
-                    if(this.calc_schema.points[pid] === undefined){
+
+                    if(points_dic[pid] !== undefined){
+                        points_dic[pid].pnt_rs_props.tar_price_group = sch['ИмеетТарифНаУслугиПоПередаче'];
+                        points_dic[pid].pnt_rs_props.tar_voltage = sch['ИмеетТарифныйУровеньНапряжения'];
+                        points_dic[pid].pnt_rs_props.tar_cons_group = sch['КатегорияПотребителяРасчетнойСхемы'];
+                        points_dic[pid].pnt_rs_props.tar_region = sch['СубъектРфРасчетнойСхемы'];
+                    }
+
+                    if (this.calc_schema.points[pid] === undefined) {
                         this.calc_schema.points[pid] = {
                             calc_method: method
                         }
                     }
 
-                    if (ptype === 'http://trinidata.ru/sigma/ТочкаУчетаОсновная') {
-                        schemas[schema_id].parents.push(pid);
-                    }
-                    else {
-                        const pdir = p['НаправлениеУчетаРасчетнойСхемыТу'];
-                        const type_id = ptype;
-                        schemas[schema_id].childs.push({ id: pid, type: type_id, dir: pdir, calc_method: method });
+                    const balance_point = p['@id'];
+                    this.balance_points.push([balance_point, pid]);
+
+                    // из одной ТУ цепочку не построить
+                    if (schema_points.length >= 1) {
+                        if (ptype === 'http://trinidata.ru/sigma/ТочкаУчетаОсновная') {
+                            schemas[schema_id].parents.push(pid);
+                        }
+                        else {
+                            const pdir = p['НаправлениеУчетаРасчетнойСхемыТу'];
+                            const type_id = ptype;
+                            schemas[schema_id].childs.push({ id: pid, type: type_id, dir: pdir, calc_method: method });
+                        }
                     }
                 }
             }
@@ -214,10 +219,20 @@ module.exports = class MdmDoc extends BaseMsg {
         this.transit = chains;
     }
 
-    setPointsProps(){
-        for(const ap of this.nodes){
-            for(const cp of ap.nodes){
-                if(this.calc_schema.points[cp.pnt_kod_point]){
+    getCntPoints(){
+        const points = {};
+        for(const sup_point of this.nodes){
+            for(const cnt_point of sup_point.nodes){
+                points[cnt_point.pnt_kod_point] = cnt_point;
+            }
+        }
+        return points;
+    }
+
+    setPointsProps() {
+        for (const ap of this.nodes) {
+            for (const cp of ap.nodes) {
+                if (this.calc_schema.points[cp.pnt_kod_point]) {
                     cp.pnt_rs_props.calc_method = this.calc_schema.points[cp.pnt_kod_point].calc_method;
                 }
             }
@@ -297,30 +312,58 @@ module.exports = class MdmDoc extends BaseMsg {
             for (const node of this.nodes) {
                 /// каждый потомок возращает массив строк c учетом родительских значений
                 for (const row of node.getColValues(my_data)) {
-                    /// проверка на значение-массив (да-да и такое встречается!)
-                    let err = '';
-                    for (const i in row) {
-                        const x = row[i];
-                        if (x !== null) {
-                            if (typeof x === 'object') {
-                                BaseMsg.warn('BAD VALUE: ' + JSON.stringify(x));
-                                if (Array.isArray(x)) {
-                                    err += `column #${i} is array: ` + JSON.stringify(x) + ' ';
-                                } else {
-                                    err += `column #${i} is object` + JSON.stringify(x) + ' ';
-                                }
-                                row[i] = null;
-                            }
-                        }
-                    }
-                    if (err) {
-                        BaseMsg.warn('HAS ERRORS: ' + err);
-                    }
+
+                    // /// проверка на значение-массив (да-да и такое встречается!)
+                    // let err = '';
+                    // for (const i in row) {
+                    //     const x = row[i];
+                    //     if (x !== null) {
+                    //         if (typeof x === 'object') {
+                    //             BaseMsg.warn('BAD VALUE: ' + JSON.stringify(x));
+                    //             if (Array.isArray(x)) {
+                    //                 err += `column #${MdmDoc.col_names[i]} is array: ` + JSON.stringify(x) + ' ';
+                    //             } else {
+                    //                 err += `column #${MdmDoc.col_names[i]} is object` + JSON.stringify(x) + ' ';
+                    //             }
+                    //             row[i] = null;
+                    //         }
+                    //     }
+                    // }
+                    // if (err) {
+                    //     BaseMsg.warn('HAS ERRORS: ' + err);
+                    // }
                     rows.push(row);
                 }
             }
         }
+        this.validateValues(rows);
         return rows;
+    }
+
+    validateValues(rows) {
+        const col_count = MdmDoc.getColNames().length;
+        for (const row of rows) {
+            try {
+                for (let i = 0; i < col_count; i++) {
+                    const x = row[i];
+                    if (x !== null) {
+                        if (typeof x === 'object') {
+                            const error =
+                                'BAD VALUE: ' +
+                                MdmDoc.col_names[i] +
+                                ' is ' + (Array.isArray(x) ? 'array' : 'object') +
+                                JSON.stringify(x);
+                            BaseMsg.warn(error);
+                            this.errors.push(error);
+                            row[i] = null;
+                        }
+                    }
+                }
+            }
+            catch (ex) {
+                this.errors.push(ex.message);
+            }
+        }
     }
 
     getSelfColValues() {

@@ -76,7 +76,7 @@ class FileHelper {
         });
     }
 
-    static processLineByLine(filePath, onLine) {
+    static processLineByLineX(filePath, onLine) {
         return new Promise((resolve, reject) => {
 
             const stream = fs.createReadStream(filePath);//, { encoding: 'win1251' });
@@ -93,7 +93,24 @@ class FileHelper {
             stream.on('error', () => reject(error));
             rl.on('line', onLine);
         });
+    }
 
+    static async processLineByLine(filePath, onLine) {
+        const instream = fs.createReadStream(filePath);
+        const outstream = new stream;
+        const rl = readline.createInterface(instream, outstream);
+        const fname = path.parse(filePath).base;
+
+        let line = 0
+        for await (const s of rl) {
+            try {
+                line++;
+                onLine(s, fname, line);
+            }
+            catch (ex) {
+                console.error(ex);
+            }
+        }
     }
 
     static async saveObj(filePath, obj) {

@@ -1,7 +1,7 @@
 const path = require('path');
 const log4js = require('log4js');
 
-const ENV = process.env.NODE_ENV;
+const ENV = process.env.MDM_ENV;
 const cfg = ENV ? ENV.toLowerCase() === 'production' ? require('./production.json') : require('./development.json') : require('./development.json');
 
 //cfg.work_dir = 'D:/IE/otp/lenenergo.psk.integration/IN'

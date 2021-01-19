@@ -5,7 +5,7 @@ const path = require('path');
 const log4js = require('log4js');
 const sqlFormatter = require('sql-formatter');
 
-const cfg = require('../../config').api;
+const cfg = require('../../config');
 const holder = require('../../masterdata/helpers/sql_holder');
 const db_helper = require('../../masterdata/helpers/db_helper');
 const FileHelper = require('../../masterdata/helpers/file_helper');
@@ -26,49 +26,34 @@ router.get('/v1/alive', async (req, res) => {
     return;
 });
 
-router.get('/v1/rnd', async (req, res) => {
-    if (process.env.NODE_ENV === 'production') {
-        res.json({ msg: 'I`m alive' });
-        return;
+router.get('/v1/msg/:msg_id', async (req, res) => {
+    const fpath = path.join(cfg.work_dir, cfg.consumers.message_handler.msg_dir, req.params.msg_id);
+    try {
+        if (FileHelper.FileExistsSync(fpath)) {
+            const text = await FileHelper.readText(fpath);
+            res.header('file', req.params.msg_id);
+            res.json(JSON.parse(text));
+        }
+        else {
+            res.status(404).end();
+        }
     }
-
-    const rnd = Math.random() * 100;
-    if (rnd < 1) {
-        res.status(204).end();
-    }
-    else {
-        const i = Math.floor(Math.random() * dirs.length);
-        const dir = path.join(base_dir, dirs[i]);
-        const fname = await FileHelper.getRandomFileName(dir);
-        const data = await FileHelper.readAsObject(path.join(dir, fname));
-        res.header('file', fname);
-        res.json(data);
+    catch (ex) {
+        log.error(`${fname}\t${ex.message}`);
+        res.status(500).json(ex).end();
     }
 });
 
-router.get('/v1/msg', async (req, res) => {
-    if (process.env.NODE_ENV === 'production') {
-        res.json({ msg: 'I`m alive' });
-        return;
-    }
-
-    const dir = 'C:/temp/data/test';
-
-    const n = Math.floor(Math.random() * 11);
-    const fname = n < 6 ? 'good-161.json' : n === 8 ? 'bad-161.json' : 'unknown-161.json';
+router.delete('/v1/msg/:msg_id', async (req, res) => {
+    const fpath = path.join(cfg.work_dir, cfg.consumers.message_handler.msg_dir, req.params.msg_id);
     try {
-        const text = await FileHelper.readText(path.join(dir, fname));
-        res.header('file', fname);
-        if (n < 9) {
-            const data = (n < 3) ? text : JSON.parse(text);
-            res.json(data);
-        }
-        else if (n === 9) {
+        if (FileHelper.FileExistsSync(fpath)) {
+            const text = await FileHelper.deleteFile(fpath);
+            res.header('file', req.params.msg_id);
             res.status(204).end();
         }
         else {
-            const i = Math.floor(Math.random() * 9);
-            res.status(http_codes[i]).end();
+            res.status(404).end();
         }
     }
     catch (ex) {

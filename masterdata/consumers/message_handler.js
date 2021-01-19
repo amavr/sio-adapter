@@ -5,7 +5,6 @@ const oracledb = require('oracledb');
 
 const CONST = require('../resources/const.json');
 const SqlHolder = require('../helpers/sql_holder');
-const OraAdapter = require('../adapters/oracle/ora-adp');
 
 const FileHelper = require('../helpers/file_helper');
 const db_helper = require('../helpers/db_helper');
@@ -31,6 +30,11 @@ module.exports = class MessageHandler extends Consumer {
         FileHelper.checkDir(this.msg_dir);
         FileHelper.checkDir(this.dbg_dir);
 
+        this.carantine_61 = cfg.carantine_61;
+        this.carantine_131 = cfg.carantine_131;
+        this.carantine_161 = cfg.carantine_161;
+        this.job_enabled = cfg.job_enabled;
+
         this.debug_61 = cfg.debug_61
         this.debug_131 = cfg.debug_131
         this.debug_161 = cfg.debug_161
@@ -44,17 +48,15 @@ module.exports = class MessageHandler extends Consumer {
         this.need_check_db = true;
 
         this.db_helper = db_helper;
-        this.adapter = new OraAdapter();
         this.db_refs = db_refs;
 
         this.stat = statObj;
-        this.stat.db_helper = this.db_helper;
     }
 
     async init() {
         super.init();
         // await this.db_helper.execSql('select 1 from dual');
-        this.adapter.init(this.db_helper.pool);
+        await this.stat.init(this.db_helper);
         BaseMsg.log = this.log;
     }
 
@@ -182,7 +184,7 @@ module.exports = class MessageHandler extends Consumer {
 
     /// запуск пакетной обработки
     async onIndle(doc) {
-        if (this.need_check_db) {
+        if (this.need_check_db && this.job_enabled) {
             await this.db_helper.startHandle();
         }
         this.need_check_db = false;
@@ -193,10 +195,15 @@ module.exports = class MessageHandler extends Consumer {
 
         const time1 = new Date().getTime();
         /// ЗАГРУЗКА В SIO_MSG6_1 --------------------------------------------
-        const rows_data = doc.getColValues(doc.id);
         const columns = MdmDoc.getColNames();
-        const sql = `insert into sio_61(`
-        // const sql = `insert into sio_msg6_1(`
+        const rows_data = doc.getColValues(doc.id);
+
+        if (doc.errors.length > 0) {
+            await this.db_helper.saveErrors('PARSE-6.1', doc.id, doc.errors);
+            return true;
+        }
+
+        const sql = `insert into ${this.carantine_61}(`
             + columns.join(', ')
             + ') values('
             + columns.map((e, i) => `:${i + 1}`).join(', ')
@@ -221,9 +228,14 @@ module.exports = class MessageHandler extends Consumer {
 
         /// ЗАГРУЗКА ТРАНЗИТНЫХ ТОЧЕК В SIO_POINT_CHAINS
         const trans_rows = doc.transit.map(r => [r.parent_id, r.child_id, r.dir, r.type, r.calc_method]);
-        const sql_trans = 'insert into sio_transit(master_ies, detail_ies, kod_directen, detail_type, calc_method) values(:1, :2, :3, :4, :5)';
+        const sql_trans = 'INSERT INTO SIO_TRANSIT(MASTER_IES, DETAIL_IES, KOD_DIRECTEN, DETAIL_TYPE, CALC_METHOD) VALUES(:1, :2, :3, :4, :5)';
         res = await this.db_helper.insertMany(sql_trans, trans_rows);
 
+        /// ЗАГРУЗКА СВЯЗЕЙ ТОЧЕК БАЛАНСА (ТУТБ) И ТОЧЕК УЧЕТА (ТУ) ИЗ РАСЧЕТНОЙ СХЕМЫ
+        if (doc.balance_points && doc.balance_points.length > 0) {
+            const sql_scheme = 'INSERT INTO SIO_SCHEME_POINTS(BALANCE_POINT, PNT_KOD_POINT) VALUES(:1, :2)';
+            await this.db_helper.insertMany(sql_scheme, doc.balance_points);
+        }
 
         if (this.handle_61) {
 
@@ -250,6 +262,15 @@ module.exports = class MessageHandler extends Consumer {
 
     async onMsg131(doc) {
         let need_to_save = false;
+
+        /// ЗАГРУЗКА В SIO_MSG13_1 --------------------------------------------
+        const rows_data = doc.getColValues(doc.id);
+        const columns = IndicatDoc.getColNames();
+        const col_names = columns.join(', ');
+        const col_nums = columns.map((e, i) => `:${i + 1}`).join(', ');
+        const sql_base_tab = `insert into ${this.carantine_131}(${col_names}) values(${col_nums})`;
+        let res = await this.db_helper.insertMany(sql_base_tab, rows_data);
+
 
         if (this.handle_131) {
 
@@ -278,7 +299,7 @@ module.exports = class MessageHandler extends Consumer {
         const columns = VolumeDoc.getColNames();
         const col_names = columns.join(', ');
         const col_nums = columns.map((e, i) => `:${i + 1}`).join(', ');
-        const sql_base_tab = `insert into sio_msg16_1(${col_names}) values(${col_nums})`;
+        const sql_base_tab = `insert into ${this.carantine_161}(${col_names}) values(${col_nums})`;
         let res = await this.db_helper.insertMany(sql_base_tab, rows_data);
 
         if (res.batchErrors) {
@@ -299,7 +320,7 @@ module.exports = class MessageHandler extends Consumer {
                 const ans_open = await this.db_helper.accept_priem(sup_point.kod_attpoint, true);
                 sup_info.open = ans_open;
 
-                if(!ans_open.success){
+                if (!ans_open.success) {
                     need_to_save = true;
                 }
 
@@ -359,7 +380,7 @@ module.exports = class MessageHandler extends Consumer {
                 }
                 /// close for changes
                 const ans_close = await this.db_helper.accept_priem(sup_point.kod_attpoint, false);
-                if(!ans_open.success){
+                if (!ans_open.success) {
                     need_to_save = true;
                 }
 

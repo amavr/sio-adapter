@@ -25,7 +25,7 @@ module.exports = class MdmCntPoint {
     }
 
     static getEmpty(owner_data) {
-        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null]];
+        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null, null, null, null]];
         return CntDevice.getEmpty(rep_data);
     }
 
@@ -58,7 +58,11 @@ module.exports = class MdmCntPoint {
             'pnt_dat_s',
             'pnt_dat_po',
             'pnt_transit',
-            'pnt_calc_method'
+            'pnt_calc_method',
+            'pnt_tar_pricegroup',
+            'pnt_tar_voltage',
+            'pnt_tar_consgroup',
+            'pnt_tar_region'
         ];
     }
 
@@ -71,6 +75,10 @@ module.exports = class MdmCntPoint {
             this.pnt_dat_po,
             this.pnt_transit,
             this.pnt_rs_props.calc_method,
+            this.pnt_rs_props.tar_price_group,
+            this.pnt_rs_props.tar_voltage,
+            this.pnt_rs_props.tar_cons_group,
+            this.pnt_rs_props.tar_region,
         ];
     }
 
