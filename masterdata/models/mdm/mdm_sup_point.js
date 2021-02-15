@@ -32,14 +32,14 @@ module.exports = class MdmSupPoint {
         this.parseNetObjects(node)
 
         this.attp_voltage_kod = null;
-        const voltage_kods = Adapter.getVal(node, 'ИспользуетсяРасчетнаяСхема');
-        if (voltage_kods != null && voltage_kods.length > 0) {
-            this.attp_voltage_kod = Adapter.getVal(voltage_kods[0], 'ИмеетТарифныйУровеньНапряжения');
+        const calc_scheme = Adapter.getVal(node, 'ИспользуетсяРасчетнаяСхема');
+        if (calc_scheme != null && calc_scheme.length > 0) {
+            this.attp_voltage_kod = Adapter.getVal(calc_scheme[0], 'ИмеетТарифныйУровеньНапряжения');
         }
 
         // this.attp_pwc = Adapter.getVal(node, 'ИспользуетТочкуПрисоединения/ОСХВСхеме(ИспользуемаяРольОбъектаСетевогоХозяйства)/@id');
 
-        this.nodes = CntPoint.parse(node['ТочкаУчетаРасчетная']);
+        this.nodes = CntPoint.parse(node['ТочкаУчетаРасчетная'], calc_scheme);
     }
 
     static getColNames() {

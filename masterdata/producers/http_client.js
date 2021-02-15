@@ -1,8 +1,10 @@
 'use strict';
 
+const path = require('path');
 const got = require('got');
 const Utils = require('../helpers/utils');
 const Producer = require('../framework/producer');
+const FileHelper = require('../helpers/file_helper');
 
 module.exports = class HttpClient extends Producer {
 
@@ -13,9 +15,13 @@ module.exports = class HttpClient extends Producer {
     constructor(cfg) {
         super(cfg);
         this.url = cfg.url;
+        this.backup_dir = cfg.backup_dir ? path.join(cfg.work_dir, cfg.backup_dir) : null;
+        if (this.backup_dir) {
+            FileHelper.checkDir(this.backup_dir);
+        }
     }
 
-    startInfo(){
+    startInfo() {
         return `WATCH ${this.url}`;
     }
 
@@ -24,10 +30,18 @@ module.exports = class HttpClient extends Producer {
      */
     async handle() {
         const answer = await this.request();
-        if(answer.code === 204){
+        if (answer.code === 204) {
             return null;
         }
-        else{
+        else {
+            if (this.backup_dir) {
+                try {
+                    FileHelper.save(path.join(this.backup_dir, answer.id), answer.data);
+                }
+                catch (ex) {
+                    this.error(ex.message);
+                }
+            }
             return answer;
         }
     }

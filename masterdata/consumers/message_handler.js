@@ -287,7 +287,6 @@ module.exports = class MessageHandler extends Consumer {
     }
 
     async onMsg161(doc) {
-        this.debug('receive 16.1')
         let need_to_save = false;
 
         const result = {

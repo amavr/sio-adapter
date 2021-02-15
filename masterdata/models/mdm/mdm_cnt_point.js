@@ -82,13 +82,34 @@ module.exports = class MdmCntPoint {
         ];
     }
 
+    static initMonthlyExpenses(defVal, defFix){
+        const res = [];
+        for(let i = 0; i < 12; i++){
+            res.push = {vol: defVal, is_fix: defFix};
+        }
+        return res;
+    }
+
+    static findPointExpenses(calc_scheme) {
+        const expenses = this.initMonthlyExpenses(null, true);
+        try {
+
+        }
+        catch (ex) {
+            BaseMsg.warn(`BAD STRUCTURE FOR CALC SCHEME`);
+            BaseMsg.warn(ex.message);
+        }
+        return expenses;
+    }
+
     /// разбор массива точек поставки
-    static parse(nodes) {
+    static parse(nodes, calc_scheme) {
         const res = [];
         if (nodes) {
             for (const node of nodes) {
                 try {
                     res.push(new MdmCntPoint(node));
+                    /// findPointExpenses
                 }
                 catch (ex) {
                     BaseMsg.warn(`BAD STRUCTURE FOR POINT WITH @ID = ${node['@id']}`);

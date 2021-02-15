@@ -2,7 +2,7 @@
     "log_dir": "logs",
     "log_level": "ALL",
     "work_dir": "D:\\IE\\otp\\lenenergo.psk.integration\\IN\\work",
-    "dbname": "dalpha",
+    "dbname": "talpha",
     "producers": {
         "fake_client": {
             "enabled": false,
@@ -12,7 +12,7 @@
             "delay": 1000
         },
         "file_client": {
-            "enabled": true,
+            "enabled": false,
             "tag": "FILE.PRD  ",
             "interval": 5000,
 
@@ -21,14 +21,17 @@
             "x-backup_dir": "backup"
         },
         "http_client": {
-            "enabled": false,
+            "enabled": true,
             "tag": "HTTP.PRD  ",
             "interval": 3000,
+            "backup_dir": null,
+            "x-backup_dir": "backup",
 
-            "xurl": "http://localhost:3004/api/v1/rnd",
-            "url": "http://localhost:3040/next"
+            "url": "http://127.0.0.1:8000/api/v1/next",
+            "xurl": "http://localhost:3040/next"
         }
     },
+
     "consumers": {
         "test_consumer": {
             "enabled": false,

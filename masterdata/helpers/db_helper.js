@@ -332,7 +332,7 @@ class DBHelper {
         return ans;
     }
 
-    async findChains(doc, fname) {
+    async findChainsX(doc, fname) {
 
         const ans = {
             file: fname,

@@ -8,6 +8,7 @@ class DBRefs {
     constructor(){
         this.link_dicts = {
             IndWays: {},
+            Departs: {},
             Direction: {},
             EnergyKind: {},
             Intervals: {},
@@ -21,6 +22,9 @@ class DBRefs {
         for(const row of answer.data){
             if(row.KOD_DICT === 1){
                 this.link_dicts.IndWays[row.ID_IES] = row.ID;
+            }
+            else if(row.KOD_DICT === 3){
+                this.link_dicts.Departs[row.ID_IES] = row.ID;
             }
             else if(row.KOD_DICT === 9){
                 this.link_dicts.EnergyKind[row.ID_IES] = row.ID;
