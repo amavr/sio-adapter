@@ -5,6 +5,7 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const oracledb = require('oracledb');
+const cfg = require('./config');
 
 const log4js = require('log4js');
 const log = log4js.getLogger('app');
@@ -27,6 +28,7 @@ const Worker = require('./masterdata');
 const worker = new Worker();
 
 const app = express();
+app.node_port = cfg.port;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -61,6 +63,9 @@ app.use(function (err, req, res, next) {
     res.status(err.status || 500).json('Sorry, not found');
 });
 
-worker.start();
+setImmediate(async() => {
+    worker.start();
+})
+
 
 module.exports = app;
