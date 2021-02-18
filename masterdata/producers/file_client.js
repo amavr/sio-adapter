@@ -33,7 +33,7 @@ module.exports = class FileClient extends Producer {
             }
             else {
                 const sour_path = path.join(this.watch_dir, fname);
-                this.info(fname);
+                // this.info(fname);
                 const txt = await FileHelper.read(sour_path);
                 if(this.backup_dir){
                     const dest_path = path.join(this.backup_dir, fname);

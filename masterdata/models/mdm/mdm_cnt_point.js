@@ -25,7 +25,12 @@ module.exports = class MdmCntPoint {
     }
 
     static getEmpty(owner_data) {
-        const rep_data = [...owner_data, ...[null, null, null, null, null, null, null, null, null, null, null]];
+        const rep_data = [
+            ...owner_data, 
+            ...[null, null, null, null, null, null, null, null, null, null, null],
+            ... MdmCntPoint.getEmptyMonthsVolumes()
+        ];
+        
         return CntDevice.getEmpty(rep_data);
     }
 
@@ -62,13 +67,32 @@ module.exports = class MdmCntPoint {
             'pnt_tar_pricegroup',
             'pnt_tar_voltage',
             'pnt_tar_consgroup',
-            'pnt_tar_region'
+            'pnt_tar_region',
+            'rasx_01',
+            'rasx_02',
+            'rasx_03',
+            'rasx_04',
+            'rasx_05',
+            'rasx_06',
+            'rasx_07',
+            'rasx_08',
+            'rasx_09',
+            'rasx_10',
+            'rasx_11',
+            'rasx_12'
         ];
     }
 
+    static getEmptyMonthsVolumes(){
+        return [null,null,null,null,null,null,null,null,null,null,null,null];
+    }
+
     getSelfColValues() {
-        return [
-            this.pnt_kod_point,
+        if(!this.pnt_rs_props.month_volumes){
+            this.pnt_rs_props.month_volumes = MdmCntPoint.getEmptyMonthsVolumes();
+        }
+        const values = [
+            ...[this.pnt_kod_point,
             this.pnt_num,
             this.pnt_name,
             this.pnt_dat_s,
@@ -78,8 +102,10 @@ module.exports = class MdmCntPoint {
             this.pnt_rs_props.tar_price_group,
             this.pnt_rs_props.tar_voltage,
             this.pnt_rs_props.tar_cons_group,
-            this.pnt_rs_props.tar_region,
+            this.pnt_rs_props.tar_region],
+            ...this.pnt_rs_props.month_volumes
         ];
+        return values;
     }
 
     static initMonthlyExpenses(defVal, defFix){

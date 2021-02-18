@@ -88,8 +88,12 @@ module.exports = class MdmCntDevice {
         const res = [];
         if (nodes) {
             for (const node of nodes) {
-                const devices = node['ПуНаИк'] ? node['ПуНаИк'] : node['ИтНаИк'];
-                if(!devices) continue;
+                const pu = Adapter.nodeAsArray(node['ПуНаИк']);
+                const it = Adapter.nodeAsArray(node['ИтНаИк']);
+                const devices = [...pu, ...it];
+
+                // const devices = node['ПуНаИк'] ? node['ПуНаИк'] : node['ИтНаИк'];
+                // if(!devices) continue;
 
                 for (const device of devices) {
                     try {

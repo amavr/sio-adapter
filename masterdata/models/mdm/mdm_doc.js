@@ -6,6 +6,7 @@ const Addr = require('./mdm_addr');
 const MdmSupPoint = require('./mdm_sup_point');
 const BaseMsg = require('../../framework/base_msg');
 const CONST = require('../../resources/const.json');
+const MdmCntPoint = require('./mdm_cnt_point');
 
 
 const MSG61_TAB = 'SIO_MSG6_1';
@@ -177,9 +178,26 @@ module.exports = class MdmDoc extends BaseMsg {
                         points_dic[pid].pnt_rs_props.tar_region = sch['СубъектРфРасчетнойСхемы'];
                     }
 
+                    const volumes = MdmCntPoint.getEmptyMonthsVolumes();
+            
+                    const calc_months = Adapter.nodeAsArray(Adapter.getVal(p, 'ПомесячныйОбъемДляРасчета', []));
+                    for(const mon of calc_months){
+                        try{
+                            const mon_num = parseInt(mon['ОпределенДляМесяца']);
+                            volumes[mon_num - 1] = mon['ОбъемЗаМесяц'];
+                        }
+                        catch(ex){
+                            const error = `BAD MONTH VOLUME FOR @id=${mon['@id']}`;
+                            BaseMsg.warn(error);
+                            this.errors.push(error);
+                        }
+                    }
+
+
                     if (this.calc_schema.points[pid] === undefined) {
                         this.calc_schema.points[pid] = {
-                            calc_method: method
+                            calc_method: method,
+                            month_volumes: volumes
                         }
                     }
 
@@ -233,7 +251,7 @@ module.exports = class MdmDoc extends BaseMsg {
         for (const ap of this.nodes) {
             for (const cp of ap.nodes) {
                 if (this.calc_schema.points[cp.pnt_kod_point]) {
-                    cp.pnt_rs_props.calc_method = this.calc_schema.points[cp.pnt_kod_point].calc_method;
+                    cp.pnt_rs_props = this.calc_schema.points[cp.pnt_kod_point];
                 }
             }
         }

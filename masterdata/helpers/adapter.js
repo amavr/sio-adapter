@@ -40,7 +40,7 @@ module.exports = class Adapter {
      */
     static getVal(node, route, defVal) {
         let val = null;
-        if(defVal === undefined) defVal = null;
+        if (defVal === undefined) defVal = null;
         try {
             const keys = route.split('/').filter(key => key.length > 0);
             const len = keys.length;
@@ -68,11 +68,13 @@ module.exports = class Adapter {
      * @param {*} node 
      */
     static nodeAsArray(node) {
-        if (Array.isArray(node)) {
-            return node;
-        }
         const nodes = [];
-        nodes.push(node);
+        if (node) {
+            if (Array.isArray(node)) {
+                return node;
+            }
+            nodes.push(node);
+        }
         return nodes;
     }
 
