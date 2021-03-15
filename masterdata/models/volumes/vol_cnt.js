@@ -61,8 +61,6 @@ module.exports = class VolumeCntPoint {
         return rep_data;
     }
 
-
-
     trimPfx(str){
         return str;
         // return Utils.extractLastSegment(str)

@@ -34,7 +34,7 @@ module.exports = class HttpClient extends Producer {
             return null;
         }
         else {
-            if (this.backup_dir) {
+            if (this.backup_dir && answer.id) {
                 try {
                     FileHelper.save(path.join(this.backup_dir, answer.id), answer.data);
                 }
@@ -54,7 +54,7 @@ module.exports = class HttpClient extends Producer {
         catch (ex) {
             return {
                 code: ex.response ? ex.response.statusCode : 500,
-                data: ex.message,
+                data: `${this.url}: ${ex.message}`,
                 id: null
             }
         }

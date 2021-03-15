@@ -170,7 +170,7 @@ module.exports = class MessageHandler extends Consumer {
                     // console.log('UNKNOWN');
                 }
 
-                if (need_to_save) {
+                if (need_to_save && pack.id !== null) {
                     FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
                 }
             }

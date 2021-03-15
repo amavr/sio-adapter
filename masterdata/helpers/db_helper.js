@@ -151,6 +151,7 @@ class DBHelper {
                     continue; 
                 }
                 res.error = ex.message;
+                log.error(ex.message);
                 await dbcon.rollback();
             }
             await this.close(dbcon);   

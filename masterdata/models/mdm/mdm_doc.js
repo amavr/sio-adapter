@@ -151,7 +151,7 @@ module.exports = class MdmDoc extends BaseMsg {
         const schemas = {};
         for (const ap of attp_points) {
 
-            // перебор всех СР и транзитных цепочек
+            // перебор всех РC и транзитных цепочек
             const used_schemas = Adapter.getVal(ap, 'ИспользуетсяРасчетнаяСхема');
             if (used_schemas === null) continue;
 

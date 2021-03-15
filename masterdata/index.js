@@ -20,7 +20,6 @@ const FakeClient = require('./producers/fake_client');
 
 const X = require('./test');
 
-
 module.exports = class Worker extends EventEmitter {
 
     constructor() {
