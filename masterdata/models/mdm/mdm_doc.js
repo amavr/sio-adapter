@@ -162,7 +162,7 @@ module.exports = class MdmDoc extends BaseMsg {
                 if (schema_points === null) continue;
                 if (schema_points.length === 0) continue;
 
-                // перебор точек СР
+                // перебор точек РС
                 for (const p of schema_points) {
                     const ptype = p['ИмеетТипТочкиУчета'];
                     const method = p['ИмеетМетодРасчета'];
@@ -219,7 +219,7 @@ module.exports = class MdmDoc extends BaseMsg {
             }
         }
 
-        // чистка свойств СР без ТУ 
+        // чистка свойств РС без ТУ 
         for (const key of Object.keys(schemas)) {
             const parents = schemas[key].parents;
             const childs = schemas[key].childs;

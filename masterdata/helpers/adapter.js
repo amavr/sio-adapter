@@ -62,6 +62,27 @@ module.exports = class Adapter {
         return val === undefined ? defVal : val;
     }
 
+    static getNodes(node, route) {
+        try {
+            return route.split('/').reduce((items, route_segment) => {
+                let nodes = [];
+                items.map((item) => {
+                    const node = item[route_segment];
+                    if(node){
+                        nodes = [...nodes, ...this.nodeAsArray(node)];
+                    }
+                });
+                return nodes;
+            }, [node]);
+
+        }
+        catch (ex) {
+            return [];
+            // console.log(ex);
+            // console.log(route);
+        }
+    }
+
     /**
      * Преобразование узла в массив с одним элементом
      * 

@@ -228,8 +228,10 @@ module.exports = class MessageHandler extends Consumer {
 
         /// ЗАГРУЗКА ТРАНЗИТНЫХ ТОЧЕК В SIO_POINT_CHAINS
         const trans_rows = doc.transit.map(r => [r.parent_id, r.child_id, r.dir, r.type, r.calc_method]);
-        const sql_trans = 'INSERT INTO SIO_TRANSIT(MASTER_IES, DETAIL_IES, KOD_DIRECTEN, DETAIL_TYPE, CALC_METHOD) VALUES(:1, :2, :3, :4, :5)';
-        res = await this.db_helper.insertMany(sql_trans, trans_rows);
+        if (trans_rows.length > 0) {
+            const sql_trans = 'INSERT INTO SIO_TRANSIT(MASTER_IES, DETAIL_IES, KOD_DIRECTEN, DETAIL_TYPE, CALC_METHOD) VALUES(:1, :2, :3, :4, :5)';
+            res = await this.db_helper.insertMany(sql_trans, trans_rows);
+        }
 
         /// ЗАГРУЗКА СВЯЗЕЙ ТОЧЕК БАЛАНСА (ТУТБ) И ТОЧЕК УЧЕТА (ТУ) ИЗ РАСЧЕТНОЙ СХЕМЫ
         if (doc.balance_points && doc.balance_points.length > 0) {
