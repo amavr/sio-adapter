@@ -13,14 +13,16 @@ module.exports = class Mdm721 extends BaseMsg {
         super(data);
 
         this.id = data['@id'];
-        this.dt = Date.parse(date['ДатаСобытия']);
-        this.schemes = CalcScheme.parse(Adapter.getNodes(data, 'ОбеспечиваетсяЭэЧерезТочкиПоставки/ИспользуетсяРасчетнаяСхема'));
+        this.dt = Adapter.getVal(data, 'ДатаСобытия');
+        this.schemes = CalcScheme.parse(Adapter.getNodes(data, 'ИспользуетсяРасчетнаяСхема'));
     }
 
-    static parse(data){
-        const data = JSON.parse(msg.data);
+    static parse(txt){
+        const data = JSON.parse(txt);
         Adapter.normalize(data, '', CONST.ARRAY_ROUTES.map(item => item.toLowerCase()));
         return new Mdm721(data);
     }
+
+
 
 }

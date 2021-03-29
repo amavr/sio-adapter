@@ -7,14 +7,14 @@ class CalcScheme {
     constructor(node) {
         this.id = node['@id'];
 
-        this.tarif_type = node['ТипТарифаРасчетнойСхемы'];
-        this.transfer_tarif = node['ИмеетТарифНаУслугиПоПередаче'];
-        this.tar_price_group = node['ИмеетТарифНаУслугиПоПередаче'];
-        this.voltage_level = node['ИмеетТарифныйУровеньНапряжения'];
-        this.consumer_categ = node['КатегорияПотребителяРасчетнойСхемы'];
-        this.region = node['СубъектРфРасчетнойСхемы'];
+        this.tarif_type = Adapter.getVal(node, 'ТипТарифаРасчетнойСхемы');
+        this.transfer_tarif = Adapter.getVal(node, 'ИмеетТарифНаУслугиПоПередаче');
+        this.tar_price_group = Adapter.getVal(node, 'ИмеетТарифНаУслугиПоПередаче');
+        this.voltage_level = Adapter.getVal(node, 'ИмеетТарифныйУровеньНапряжения');
+        this.consumer_categ = Adapter.getVal(node, 'КатегорияПотребителяРасчетнойСхемы');
+        this.region = Adapter.getVal(node, 'СубъектРфРасчетнойСхемы');
 
-        this.points = SchemePoint.parse(Adapter.getVal(node ,'ТочкаУчетаВРасчетнойСхеме', []));
+        this.points = SchemePoint.parse(Adapter.getNodes(node ,'ТочкаУчетаВРасчетнойСхеме'));
     }
 
     static parse(nodes) {
@@ -35,10 +35,14 @@ class SchemePoint {
         const cnt_point = Adapter.getVal(node, 'ЯвляетсяТУ');
         this.id = typeof cnt_point === 'object' ? cnt_point['@id'] : cnt_point;
 
-        this.type = node['ИмеетТипТочкиУчета'];
-        this.method = node['ИмеетМетодРасчета'];
-        this.direction = node['НаправлениеУчетаРасчетнойСхемыТу'];
-        this.losses = node['ПотериПеременныеВеличина'];
+        this.dt_beg = Adapter.getVal(node, 'ДатаНачала');
+        this.dt_end = Adapter.getVal(node, 'ДатаОкончания');
+        
+        this.type = Adapter.getVal(node, 'ИмеетТипТочкиУчета');
+        this.method = Adapter.getVal(node, 'ИмеетМетодРасчета');
+        this.scheme = Adapter.getVal(node, 'ИмеетРасчетнуюСхему');
+        this.direction = Adapter.getVal(node, 'НаправлениеУчетаРасчетнойСхемыТу');
+        this.losses = Adapter.getVal(node, 'ПотериПеременныеВеличина');
 
         this.month_volumes = SchemePointVolume.parse(Adapter.getVal(node, 'ПомесячныйОбъемДляРасчета', []));
     }
@@ -55,8 +59,8 @@ class SchemePoint {
 class SchemePointVolume {
     constructor(node) {
         this.month_num = parseInt(node['ОпределенДляМесяца']);
-        this.value = node['ОбъемЗаМесяц'];
-        this.fixed = node['ФиксированныйОбъем'];
+        this.value = Adapter.getVal(node, 'ОбъемЗаМесяц');
+        this.fixed = Adapter.getVal(node, 'ФиксированныйОбъем');
     }
 
     static parse(nodes) {

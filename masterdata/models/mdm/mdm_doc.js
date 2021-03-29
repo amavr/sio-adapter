@@ -18,7 +18,6 @@ module.exports = class MdmDoc extends BaseMsg {
     constructor(data) {
         super(data);
         this.tag = '6.1';
-        this.errors = [];
         MdmDoc.getColNames();
 
         Adapter.normalize(data, '', CONST.ARRAY_ROUTES.map(item => item.toLowerCase()));
@@ -39,6 +38,7 @@ module.exports = class MdmDoc extends BaseMsg {
         this.dg_kod_dog = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/@id');
         this.dg_ndog = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/АктуальныйНомерДоговора');
         this.dg_kind = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ОтнесенККлассуПотребителей');
+        this.dg_type = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ИмеетВидДоговора');
         this.dg_dat_numdog = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ДатаДокумента');
         this.dg_dat_dog = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ДатаВступленияВСилуДокумента');
         this.dg_dat_fin = Adapter.getVal(data, 'СнабжаетсяНаОсновеДоговора/ДатаОкончанияДействияДокумента');
@@ -140,7 +140,7 @@ module.exports = class MdmDoc extends BaseMsg {
     extractTransitChains(data) {
         this.balance_points.length = 0; // очистка массива связей ТБ и ТУ
         const chains = [];
-        
+
         // словарь ссылок на ТУ для назначения им тарифных свойств из РасчСхемы
         const points_dic = this.getCntPoints();
 
@@ -166,12 +166,13 @@ module.exports = class MdmDoc extends BaseMsg {
                 for (const p of schema_points) {
                     const ptype = p['ИмеетТипТочкиУчета'];
                     const method = p['ИмеетМетодРасчета'];
+                    const losses = Adapter.getNum(p['ПотериПеременныеВеличина']);
                     const cnt_point = Adapter.getVal(p, 'ЯвляетсяТУ');
                     if (cnt_point === null) continue;
 
                     const pid = typeof cnt_point === 'object' ? cnt_point['@id'] : cnt_point;
 
-                    if(points_dic[pid] !== undefined){
+                    if (points_dic[pid] !== undefined) {
                         points_dic[pid].pnt_rs_props.tar_price_group = sch['ИмеетТарифНаУслугиПоПередаче'];
                         points_dic[pid].pnt_rs_props.tar_voltage = sch['ИмеетТарифныйУровеньНапряжения'];
                         points_dic[pid].pnt_rs_props.tar_cons_group = sch['КатегорияПотребителяРасчетнойСхемы'];
@@ -179,14 +180,14 @@ module.exports = class MdmDoc extends BaseMsg {
                     }
 
                     const volumes = MdmCntPoint.getEmptyMonthsVolumes();
-            
+
                     const calc_months = Adapter.nodeAsArray(Adapter.getVal(p, 'ПомесячныйОбъемДляРасчета', []));
-                    for(const mon of calc_months){
-                        try{
+                    for (const mon of calc_months) {
+                        try {
                             const mon_num = parseInt(mon['ОпределенДляМесяца']);
                             volumes[mon_num - 1] = mon['ОбъемЗаМесяц'];
                         }
-                        catch(ex){
+                        catch (ex) {
                             const error = `BAD MONTH VOLUME FOR @id=${mon['@id']}`;
                             BaseMsg.warn(error);
                             this.errors.push(error);
@@ -197,6 +198,7 @@ module.exports = class MdmDoc extends BaseMsg {
                     if (this.calc_schema.points[pid] === undefined) {
                         this.calc_schema.points[pid] = {
                             calc_method: method,
+                            var_losses: losses,
                             month_volumes: volumes
                         }
                     }
@@ -237,10 +239,10 @@ module.exports = class MdmDoc extends BaseMsg {
         this.transit = chains;
     }
 
-    getCntPoints(){
+    getCntPoints() {
         const points = {};
-        for(const sup_point of this.nodes){
-            for(const cnt_point of sup_point.nodes){
+        for (const sup_point of this.nodes) {
+            for (const cnt_point of sup_point.nodes) {
                 points[cnt_point.pnt_kod_point] = cnt_point;
             }
         }
@@ -251,7 +253,9 @@ module.exports = class MdmDoc extends BaseMsg {
         for (const ap of this.nodes) {
             for (const cp of ap.nodes) {
                 if (this.calc_schema.points[cp.pnt_kod_point]) {
-                    cp.pnt_rs_props = this.calc_schema.points[cp.pnt_kod_point];
+                    cp.pnt_rs_props.calc_method = this.calc_schema.points[cp.pnt_kod_point].calc_method;
+                    cp.pnt_rs_props.var_losses = this.calc_schema.points[cp.pnt_kod_point].var_losses;
+                    cp.pnt_rs_props.month_volumes = this.calc_schema.points[cp.pnt_kod_point].month_volumes;
                 }
             }
         }
@@ -285,6 +289,7 @@ module.exports = class MdmDoc extends BaseMsg {
             'dg_kod_dog',
             'dg_ndog',
             'dg_kind',
+            'dg_type',
             'dg_dat_numdog',
             'dg_dat_dog',
             'dg_dat_fin',
@@ -395,6 +400,7 @@ module.exports = class MdmDoc extends BaseMsg {
             this.dg_kod_dog,
             this.dg_ndog,
             this.dg_kind,
+            this.dg_type,
             this.dg_dat_numdog,
             this.dg_dat_dog,
             this.dg_dat_fin,

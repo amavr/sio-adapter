@@ -56,10 +56,38 @@ module.exports = class Adapter {
             }
         }
         catch (ex) {
-            // console.log(ex);
+            console.log(ex);
             // console.log(route);
         }
         return val === undefined ? defVal : val;
+    }
+
+    static getNum(val, defVal){
+        if (defVal === undefined) defVal = null;
+        if(val === undefined) return defVal;
+        if(val === null) return defVal;
+
+        if(typeof val === 'string'){
+            // если в строке есть ".", то вероятно, что "," - разделитель разрядов, который нужно убрать
+            if(val.includes('.')){
+                val = val.replace(',', '');
+            }
+            else{
+                val = val.replace(',', '.');
+            }
+            return Number.parseFloat(val);
+        }
+        else{
+            return val;
+        }
+    }
+
+    static getDate(val, defVal){
+        if (defVal === undefined) defVal = null;
+        if(val === undefined) return defVal;
+        if(val === null) return defVal;
+
+        return Date.parse(val);
     }
 
     static getNodes(node, route) {

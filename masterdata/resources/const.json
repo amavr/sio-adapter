@@ -12,8 +12,9 @@
         "TYPE_VOL": "http://trinidata.ru/sigma/ПередачаОбъемов",
         "TYPE_IND": "http://trinidata.ru/sigma/Показания",
         "TYPE_CFG": "http://trinidata.ru/sigma/КонфигурацияИзмерительногоКомплекса",
-        "TYPE_ADD_PNT": "http://trinidata.ru/sigma/СозданиеНовойТу",
         "TYPE_721": "http://trinidata.ru/sigma/ОпределениеРасчетнойСхемыТу",
+        "TYPE_722": "http://trinidata.ru/sigma/ОтвязкаТуОтРасчетнойСхемы",
+        "TYPE_723": "http://trinidata.ru/sigma/СозданиеНовойТу",
         "NO_TYPE": "-"
     },
     "LOSSES": {

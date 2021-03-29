@@ -12,7 +12,8 @@ class DBRefs {
             Direction: {},
             EnergyKind: {},
             Intervals: {},
-            CalcMethod: {}
+            CalcMethod: {},
+            TarGroups: {}
         }
     }
 

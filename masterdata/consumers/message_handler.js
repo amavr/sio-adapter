@@ -19,6 +19,8 @@ const MdmDoc = require('../models/mdm/mdm_doc');
 const IndicatDoc = require('../models/indicates/ind_doc');
 const VolumeDoc = require('../models/volumes/vol_doc');
 const CfgDoc = require('../models/mdm_cfg/cfg_doc');
+const Mdm721 = require('../models/mdm7/msg721');
+const Adapter = require('../helpers/adapter');
 
 module.exports = class MessageHandler extends Consumer {
 
@@ -84,11 +86,14 @@ module.exports = class MessageHandler extends Consumer {
                         msg = new VolumeDoc(jobj);
                     } else if (ies_type === CONST.MSG_TYPES.TYPE_CFG) {
                         msg = new CfgDoc(jobj);
+                    } else if (ies_type === CONST.MSG_TYPES.TYPE_721) {
+                        msg = new Mdm721(jobj);
                     } else {
                         msg = MessageHandler.makeErrorMsg(pack, ies_type ? 'UNKNOWN-TYPE: ' + ies_type : 'MSG TYPE NOT DEFINED');
                         FileHelper.save(path.join(this.msg_dir, pack.id), pack.data);
                         this.warn(`${msg.id}\t${msg.error}`);
                     }
+                    msg.source_id = pack.id;
                     this.info(`${pack.id} [${msg.tag}]`);
                     this.stat.processMsg(msg);
                     return msg;
@@ -164,6 +169,10 @@ module.exports = class MessageHandler extends Consumer {
                     else if (msg.tag === '5.5') {
                         need_to_save = await this.onMsg55(msg);
                     }
+                }
+                else if (msg instanceof Mdm721) {
+                    this.need_check_db = true;
+                    need_to_save = await this.onMsg721(msg);
                 }
                 else {
                     need_to_save = true;
@@ -670,6 +679,92 @@ module.exports = class MessageHandler extends Consumer {
         }
 
         return true;
+    }
+
+    async onMsg721(doc) {
+        let need_to_save = false;
+
+        try {
+
+            if(doc.schemes.length === 0){
+                throw new Error('Calc scheme or scheme points not found');
+            }
+
+            for (const scheme of doc.schemes) {
+                for (const point of scheme.points) {
+                    try {
+                        const rows = await this.db_helper.selectSqlName('get_sys_pnt_obj', { pnt_ies: point.id });
+                        // TODO: у точки может быть несколько пар, что делать?
+                        for (const row of rows) {
+                            const sys_tar_grp = this.db_refs.link_dicts.TarGroups[scheme.tar_price_group];
+                            const sys_calc_method = this.db_refs.link_dicts.CalcMethod[point.method];
+
+                            const props = {
+                                kod_point_: {type: oracledb.NUMBER, dir: oracledb.BIND_INOUT,  val: row.KOD_POINT},
+                                kod_numobj_: row.KOD_NUMOBJ,
+                                dat_s_: {type: oracledb.DB_TYPE_DATE, dir: oracledb.BIND_IN,  val: point.dt_beg},
+                                dat_po_: {type: oracledb.DB_TYPE_DATE, dir: oracledb.BIND_IN,  val: point.dt_end},
+                                method_: sys_calc_method,
+                                var_losses_val_: point.losses,
+                                tar_pricegroup_: sys_tar_grp,
+                                tar_voltage_: scheme.voltage_level,
+                                tar_consgroup_: scheme.consumer_categ,
+                                tar_region_: scheme.region,
+                                rasx_tiprasx_: row.RASX_TIPRASX,
+                                rasx_01_: row.RASX_01,
+                                rasx_02_: row.RASX_02,
+                                rasx_03_: row.RASX_03,
+                                rasx_04_: row.RASX_04,
+                                rasx_05_: row.RASX_05,
+                                rasx_06_: row.RASX_06,
+                                rasx_07_: row.RASX_07,
+                                rasx_08_: row.RASX_08,
+                                rasx_09_: row.RASX_09,
+                                rasx_10_: row.RASX_10,
+                                rasx_11_: row.RASX_11,
+                                rasx_12_: row.RASX_12,
+                                flow_type_: row.FLOW_TYPE,
+                                st_: {
+                                    type: oracledb.NUMBER,
+                                    dir: oracledb.BIND_OUT
+                                },
+                                errM_: {
+                                    type: oracledb.STRING,
+                                    dir: oracledb.BIND_OUT
+                                }
+                            }
+                            const answer = await this.db_helper.callProc('IEG_ISE_POINT.InsOrUpd_PointHar_', props);
+                            if (answer.success) {
+                                if (answer.data.outBinds.st_ < 0) {
+                                    need_to_save = true;
+                                    throw new Error(answer.data.outBinds.errM_);
+                                }
+                            }
+                            else{
+                                need_to_save = true;
+                                throw new Error(answer.error);
+                            }
+                        }
+                    }
+                    catch (ex) {
+                        need_to_save = true;
+                        this.error(ex.message);
+                        doc.errors.push(ex.message);
+                    }
+                }
+            }
+        }
+        catch (ex) {
+            this.error(ex.message);
+            doc.errors.push(ex.message);
+            need_to_save = true;
+        }
+
+        if(doc.errors.length > 0){
+            await this.db_helper.saveErrors('PARSE-7.2.1', doc.source_id, doc.errors);
+        }
+
+        return need_to_save;
     }
 
     async onMessageErr(pack) {

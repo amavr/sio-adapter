@@ -6,6 +6,7 @@ module.exports = class BaseMsg{
     static set log(l) { this._log = l; }
 
     constructor(data){
+        this.errors = [];
         this.id = data.id;
         this.tag = 'SYS';
         this.counters = null;

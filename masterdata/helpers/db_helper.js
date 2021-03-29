@@ -16,14 +16,14 @@ class DBHelper {
         this.options = cfg;
         this.options.connectString = this.options.cs.join('\n');
         this.pool = await oracledb.createPool(this.options);
-        this.dbname = cfg.cs.join().replace(/.*SERVICE_NAME\s*=\s*(\w+)\W*/gi, '$1'); 
-        try{
+        this.dbname = cfg.cs.join().replace(/.*SERVICE_NAME\s*=\s*(\w+)\W*/gi, '$1');
+        try {
             // const dbcon = await this.getConnection();
             // const sql = SqlHolder.get('job_check');
             // await dbcon.execute(sql);
             log.info('READY ' + (this.dbname ? this.dbname.toUpperCase() : 'UNKNOWN'));
         }
-        catch(ex){
+        catch (ex) {
             log.error(ex.message);
         }
     }
@@ -52,7 +52,7 @@ class DBHelper {
         await this.pool.rollback();
     }
 
-    async existsExtId(extId, flowType){
+    async existsExtId(extId, flowType) {
         const sql = 'select id from ier_link_objects where id_ies = :ext_id and flow_type = :flow';
         const binds = {
             ext_id: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: extId },
@@ -66,13 +66,14 @@ class DBHelper {
         const res = {
             success: false,
             error: null,
-            data: null
+            data: null,
+            outBinds: null
         };
 
         const dbcon = await this.getConnection();
         try {
             const do_commit = autoCommit === undefined ? true : autoCommit;
-            const result = await dbcon.execute(sql, binds ? binds : [], { autoCommit: do_commit ? true : false, outFormat: oracledb.OBJECT });
+            const result = await dbcon.execute(sql, binds ? binds : [], { autoCommit: do_commit ? true : false, outFormat: oracledb.OBJECT, extendedMetaData: true });
             res.data = result.rows;
             res.success = true;
         } catch (ex) {
@@ -81,6 +82,17 @@ class DBHelper {
             await this.close(dbcon);
         }
         return res;
+    }
+
+    async select(sql, binds) {
+        const dbcon = await this.getConnection();
+        const result = await dbcon.execute(sql, binds, {outFormat: oracledb.OBJECT});
+        await this.close(dbcon);
+        return result.rows;
+    }
+
+    async selectSqlName(sqlName, binds) {
+        return await this.select(SqlHolder.get(sqlName), binds);
     }
 
     async saveCounters(counters) {
@@ -106,9 +118,9 @@ class DBHelper {
      * @param {string(200)} source 
      * @param {Array<string>} errors 
      */
-    async saveErrors(tag, source, errors){
+    async saveErrors(tag, source, errors) {
         const rows = [];
-        for(const e of errors){
+        for (const e of errors) {
             rows.push([tag, source, e]);
         }
         return await this.insertMany(SqlHolder.get('save_errors'), rows);
@@ -141,21 +153,22 @@ class DBHelper {
                 res.success = res.execResult.rowsAffected === rows.length;
                 await dbcon.commit();
             } catch (ex) {
-                try{
+                try {
                     await dbcon.ping();
                 }
-                catch(ex){
+                catch (ex) {
                     // только в это случае нужен повторный цикл и пауза
                     await this.close(dbcon);
                     await Utils.sleep(3000);
-                    continue; 
+                    continue;
                 }
                 res.error = ex.message;
                 log.error(ex.message);
+                log.error(ex.stack);
                 await dbcon.rollback();
             }
-            await this.close(dbcon);   
-            break;         
+            await this.close(dbcon);
+            break;
         }
 
         return res;
@@ -183,7 +196,7 @@ class DBHelper {
             msg: { type: oracledb.STRING, dir: oracledb.BIND_OUT }
 
         }
-        
+
         const dbcon = await this.getConnection();
         try {
             log.info(`RUN HANDLE`);
@@ -195,7 +208,7 @@ class DBHelper {
             log.error(ex.message);
             await dbcon.rollback();
         }
-        finally{
+        finally {
             this.close(dbcon);
         }
     }
@@ -209,7 +222,7 @@ class DBHelper {
             flow: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: flowType },
             tag_code: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: tag }
         }
-        
+
         const dbcon = await this.getConnection();
         try {
             const res = await dbcon.execute(sql, binds);
@@ -219,7 +232,7 @@ class DBHelper {
             log.error(ex.message);
             await dbcon.rollback();
         }
-        finally{
+        finally {
             this.close(dbcon);
         }
     }
@@ -250,7 +263,75 @@ class DBHelper {
             // console.error(ex);
             await dbcon.rollback();
         }
-        finally{
+        finally {
+            this.close(dbcon);
+        }
+        return answer;
+    }
+
+    async getLinksByIES(list) {
+        const answer = {
+            success: false,
+            error: null,
+            data: {}
+        }
+        const binds = {
+            ies_list: {
+                type: "ASUSETYPES.VARCHAR2$TABLE",
+                dir: oracledb.BIND_IN,
+                val: list
+            },
+            row_list: {
+                type: "ASUSETYPES.INDEXED_STRING$TABLE",
+                dir: oracledb.BIND_OUT,
+            }
+        };
+        try {
+            const res = await this.callProcWithArrays('IEG_MDM.FIND_LINKS_BY_IES', binds);
+            answer.success = res.success;
+            answer.error = res.error;
+            if (answer.success) {
+                for (const row of res.outBinds.row_list) {
+                    if (answer.data[row.VAL] === undefined) {
+                        answer.data[row.VAL] = [];
+                    }
+                    answer.data[row.VAL].push({ id: row.IDX, type: row.VAL2 });
+                }
+            }
+        }
+        catch (ex) {
+            answer.success = false;
+            answer.error = ex.message;
+        }
+        return answer;
+    }
+
+    async callProcWithArrays(procName, binds) {
+        const answer = {
+            outBinds: null,
+            success: false,
+            error: null
+        };
+
+        const params = [];
+        for (const key of Object.keys(binds)) {
+            params.push(`${key} => :${key}`);
+        }
+        const sql = `begin ${procName}(${params.join()}); end;`;
+        const dbcon = await this.getConnection();
+        try {
+            const res = await dbcon.execute(sql, binds, { resultSet: false, autoCommit: false });
+            await dbcon.commit();
+            answer.outBinds = JSON.parse(JSON.stringify(res.outBinds));
+            answer.success = true;
+        }
+        catch (ex) {
+            answer.error = ex.message;
+            answer.success = false;
+            // console.error(ex);
+            await dbcon.rollback();
+        }
+        finally {
             this.close(dbcon);
         }
         return answer;
@@ -313,7 +394,7 @@ class DBHelper {
                 code = res.outBinds.result_code;
                 if (!ans[code]) ans[code] = [];
                 ans[code].push({ register_id: node.id, msg: res.outBinds.result_msg });
-                if(res.outBinds.result_code < 0){
+                if (res.outBinds.result_code < 0) {
                     ans.success = false;
                 }
             }
@@ -325,7 +406,7 @@ class DBHelper {
                 await dbcon.rollback();
                 ans.success = false;
             }
-            finally{
+            finally {
                 this.close(dbcon);
             }
         }

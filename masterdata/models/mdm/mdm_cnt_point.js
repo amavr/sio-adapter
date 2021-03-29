@@ -68,6 +68,7 @@ module.exports = class MdmCntPoint {
             'pnt_tar_voltage',
             'pnt_tar_consgroup',
             'pnt_tar_region',
+            'pnt_var_losses',
             'rasx_01',
             'rasx_02',
             'rasx_03',
@@ -102,7 +103,9 @@ module.exports = class MdmCntPoint {
             this.pnt_rs_props.tar_price_group,
             this.pnt_rs_props.tar_voltage,
             this.pnt_rs_props.tar_cons_group,
-            this.pnt_rs_props.tar_region],
+            this.pnt_rs_props.tar_region,
+            this.pnt_rs_props.var_losses
+            ],
             ...this.pnt_rs_props.month_volumes
         ];
         return values;
